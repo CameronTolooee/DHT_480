@@ -1,0 +1,29 @@
+Writing down stuff I still need to do:
+
+*******************************
+****** Non-coding stuff *******
+*******************************
+
+- Comment code before it get out of hand
+- Organize GitHub --> src/ conf/ etc..
+- environment variables
+- better Makefile
+- finish TODO list
+- ant build? ie: build.xml
+
+*******************************
+******** Coding stuff *********
+*******************************
+
+- Client API
+- Linear write from server-to-server rather than client-to-servers
+- retrieve
+- Make MetaDataServer alone
+- Status function
+- testing.. always testing
+- Chord look-up
+- Stuff too far ahead to worry about..
+
+*******************************
+******** Pretty - Box *********
+*******************************
