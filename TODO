@@ -4,8 +4,8 @@ Writing down stuff I still need to do:
 ****** Non-coding stuff *******
 *******************************
 
-- Comment code before it get out of hand
-- Organize GitHub --> src/ conf/ etc..
+DONE Comment code before it get out of hand
+DONE Organize GitHub --> src/ conf/ etc..
 - environment variables
 - better Makefile
 - finish TODO list
