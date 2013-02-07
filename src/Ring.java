@@ -1,10 +1,6 @@
 import java.io.File;
 import java.util.TreeMap;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Scanner;
-import java.util.Comparator;
-import java.util.HashMap;
 
 
 public class Ring {
@@ -33,9 +29,9 @@ public class Ring {
 
 	// Takes a file and hashes it to the ring, assigns the file a node based on position on ring
 	public String assignFileToNode(File f){
-		int position = Math.abs(f.hashCode() % ringSize); // aparently hashCode can be negative?
+		int position = Math.abs(f.hashCode() % ringSize); // apparently hashCode can be negative?
 		String result = mappings.get(mappings.firstKey());
-		// loop through each server posision around the ring until correct posision is found.
+		// loop through each server position around the ring until correct position is found.
 		for (Integer i : mappings.keySet()){
 			if(position > i){
 				result = mappings.get(i);
@@ -45,7 +41,7 @@ public class Ring {
 		return result;
 	}
 	
-	// main for debuggin purposes only
+	// main for debugging purposes only
 	public static void main(String args[]){
 		Ring r = new Ring();
 		System.out.println("Ring Size: "+r.ringSize);
@@ -56,4 +52,3 @@ public class Ring {
 	}	
 	
 }
-
