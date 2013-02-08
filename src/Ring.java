@@ -5,7 +5,7 @@ import java.util.Scanner;
 
 public class Ring {
 	
-	private TreeMap<Integer, String> mappings; // Sorted is convient later.
+	private TreeMap<Integer, String> mappings; // Sorted is convinent later.
 	private int ringSize;
 	
 	public Ring(){

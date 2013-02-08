@@ -24,25 +24,29 @@ public class Client {
 			} else {
 				fileName = args[0];
 			}
-			store(fileName); // you left off here finish writing the API
+			write(fileName);
 		} else if (cmd.equals("get")){
-			
+			String fileName = null;
+			if (args.length == 1) {
+				fileName = getFileFromUser();
+			} else {
+				fileName = args[0];
+			}
+			get(fileName);
 		} else if (cmd.equals("status")){
-			
+			status();
 		} else {
 			System.out.println("Invalid command: " + cmd);
 			usage();
 		}
-
-		Client c = new Client();
-		int repLevel = 3; // Should make this a commandline arg
-		MetaDataServer meta = new MetaDataServer(repLevel); //
-		ArrayList<String> list = meta.store(fileName);
-		System.out.println(list);
-		c.write(fileName, list); // change
 	}
 
-	private static void store(String fileName) {
+	private static void status() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private static void get(String fileName) {
 		// TODO Auto-generated method stub
 		
 	}
@@ -69,14 +73,19 @@ public class Client {
 		return result;
 	}
 
-	// Takes the filename and a list of servers to write the file to.
-	public void write(String file_name, ArrayList<String> servers) throws Exception {
+	// Takes the filename to write the file to.
+	private static void write(String fileName) throws Exception {
 		ObjectInputStream ois = null;
 		ObjectOutputStream oos = null;
 		FileInputStream fis = null;
 		Socket socket = null;
+		
+		Client c = new Client();
+		int repLevel = 3; // Should make this a commandline arg
+		MetaDataServer meta = new MetaDataServer(repLevel); //
+		ArrayList<String> servers = meta.store(fileName);
 		try {
-			File file = new File(file_name);
+			File file = new File(fileName);
 			for (String server : servers) {
 				socket = new Socket(server, 35005); // open socket on port 35005
 

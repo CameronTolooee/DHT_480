@@ -137,16 +137,11 @@ public class MetaDataServer extends Thread {
 
 	}
 
-	// main for debugging purposes only
 	public static void main(String args[]) {
-		MetaDataServer mds = new MetaDataServer(3);
-		System.out.println("1: " + mds.store("test.txt"));
-		System.out.println("2: " + mds.store("servers"));
-		System.out.println("3: " + mds.store("config.sh"));
-		System.out.println("4: " + mds.store("killServers.sh"));
-		System.out.println("2: " + mds.store("Makefile"));
-		System.out.println("2: " + mds.store("Ring.class"));
-		System.out.println("2: " + mds.store("Ring.java"));
+		if (args.length != 1){
+			System.out.println("Usage: MetaDataServer [replication_level]");
+			System.exit(1);
+		}
+		new MetaDataServer(Integer.parseInt(args[0])).start();
 	}
-
 }
