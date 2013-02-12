@@ -7,15 +7,16 @@ public class Ring {
 	
 	private TreeMap<Integer, String> mappings; // Sorted is convinent later.
 	private int ringSize;
+	private String homeDir;
 	
-	public Ring(){
-
+	public Ring(String homeDir){
+		this.homeDir = homeDir;
         mappings = new TreeMap<Integer,String>();
 		// --------
 		ringSize = (1 << 7)-1; // keyspace = 2^7 --> bit shifting is neat!
 		Scanner sc = null;
 		try { 
-			sc = new Scanner(new File("../conf/servers")); // env variables again
+			sc = new Scanner(new File(homeDir+"/conf/servers")); // env variables again
 			// Hash the ip of servers to the ring to
 			while (sc.hasNext()){
 				String ip = sc.next();
@@ -43,7 +44,7 @@ public class Ring {
 	
 	// main for debugging purposes only
 	public static void main(String args[]){
-		Ring r = new Ring();
+		Ring r = new Ring("DF");
 		System.out.println("Ring Size: "+r.ringSize);
 		File f = new File("servers");
 		System.out.println("DF" + f.hashCode());

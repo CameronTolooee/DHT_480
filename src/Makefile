@@ -1,5 +1,5 @@
 default:
-	javac -g -nowarn *.java
+	javac -g -nowarn -d ../bin *.java
 
 clean:
 	rm *.class

@@ -1,4 +1,4 @@
-Writing down stuff I still need to do:
+TODO LIST:
 
 *******************************
 ****** Non-coding stuff *******
@@ -6,24 +6,48 @@ Writing down stuff I still need to do:
 
 DONE Comment code before it get out of hand
 DONE Organize GitHub --> src/ conf/ etc..
-- environment variables
-- better Makefile
+DONE environment variables
 - finish TODO list
-- ant build? ie: build.xml
+- ant build instead of Makefile (low-priority)
 
 *******************************
 ******** Coding stuff *********
 *******************************
 
-- Client API
-- Linear write from server-to-server rather than client-to-servers
+DONE Client API
+DONE Linear write from server-to-server rather than client-to-servers
 - retrieve
-- Make MetaDataServer alone
-- Status function
+DONE Make MetaDataServer alone
+DONE Status function
+- make servers update meta node rather than assumptions | THIS BEFORE RETRIEVE
+	* this should also update file_map					| THIS BEFORE RETRIEVE
 - testing.. always testing
-- Chord look-up
+- Chord look-up <-- worrying about this after PA1
 - Stuff too far ahead to worry about..
 
 *******************************
-******** Pretty - Box *********
+************* Dog *************
 *******************************
+
+           ____,'`-, 
+      _,--'   ,/::.; 
+   ,-'       ,/::,' `---.___        ___,_ 
+   |       ,:';:/        ;'"`;"`--./ ,-^.;--. 
+   |:     ,:';,'         '         `.   ;`   `-. 
+    \:.,:::/;/ -:.                   `  | `     `-. 
+     \:::,'//__.;  ,;  ,  ,  :.`-.   :. |  ;       :. 
+      \,',';/O)^. :'  ;  :   '__` `  :::`.       .:' ) 
+      |,'  |\__,: ;      ;  '/O)`.   :::`;       ' ,' 
+           |`--''            \__,' , ::::(       ,' 
+           `    ,            `--' ,: :::,'\   ,-' 
+            | ,;         ,    ,::'  ,:::   |,' 
+            |,:        .(          ,:::|   ` 
+            ::'_   _   ::         ,::/:| 
+           ,',' `-' \   `.      ,:::/,:| 
+          | : _  _   |   '     ,::,' ::: 
+          | \ O`'O  ,',   ,    :,'   ;:: 
+           \ `-'`--',:' ,' , ,,'      :: 
+            ``:.:.__   ',-','        ::' 
+   woof        `--.__, ,::.         ::' 
+                   |:  ::::.       ::' 
+                   |:  ::::::    ,::' 

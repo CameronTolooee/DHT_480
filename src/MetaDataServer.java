@@ -13,10 +13,12 @@ public class MetaDataServer extends Thread {
 	private TreeMap<String, Integer> servers; // map server to num of files stored
 	private Ring ring; // DHT ring overlay
 	private int repLevel; // replication level TBD by client
+	private String homeDir;
 
-	public MetaDataServer(int replicationLevel) {
+	public MetaDataServer(String homeDir, int replicationLevel) {
+		this.homeDir = homeDir;
 		repLevel = replicationLevel;
-		ring = new Ring();
+		ring = new Ring(homeDir);
 		file_map = new TreeMap<File, String>();
 		servers = new TreeMap<String, Integer>();
 		retrieveServerList();
@@ -47,11 +49,18 @@ public class MetaDataServer extends Thread {
 			Object o = ois.readObject();
 			if (o instanceof String) {
 				if (o.equals("store")) {
+					System.out.println("Meta: recieved store cmd :"+o.toString());
+					o = ois.readObject();
+					if (o instanceof String){
+						ArrayList<String> result = store(o.toString());
+						oos.writeObject(result);
+					}
 					// store stuff
 				} else if (o.equals("get")) {
 					// get stuff
 				} else if (o.equals("status")) {
 					// print status of servers
+					oos.writeObject(status());
 				} else {
 					throw new Exception(o + " is not a valid command. Commands are \"store\" and \"get\"");
 				}
@@ -65,11 +74,26 @@ public class MetaDataServer extends Thread {
 		}
 	}
 
+	private String status(){
+		System.out.println("FDF: "+file_map);
+		String result = "";
+		result += ("*-----------------------------------*\n");
+		result += String.format("|  %-20s%-13s|\n", "ip", "# of files");
+		result += ("*-----------------------------------*\n");
+		for (String s: servers.keySet()){
+				result += String.format("| %-27s%-7d|\n", s, servers.get(s));
+		}
+		result += ("*-----------------------------------*\n");
+		return result;
+	}
+
 	// get the list of servers from the config file.
 	private void retrieveServerList() {
 		Scanner sc = null;
 		try {
-			sc = new Scanner(new File("../conf/servers")); // Ultimately this should be done through environment
+			sc = new Scanner(new File(homeDir+"/conf/servers")); // Ultimately this should be done through environment
+			if(sc.hasNext())
+				sc.next(); // remove metanode
 			while (sc.hasNext()) { // variables to determine path instead of hard coded path.
 				servers.put(sc.next(), new Integer(0));
 			}
@@ -123,7 +147,7 @@ public class MetaDataServer extends Thread {
 		return result;
 	}
 
-	// initially had this but I don't think its needed. Leaving it for now
+
 	@SuppressWarnings("unused")
 	private void update(File f) {
 		// update info after storing/removing file
@@ -138,10 +162,10 @@ public class MetaDataServer extends Thread {
 	}
 
 	public static void main(String args[]) {
-		if (args.length != 1){
-			System.out.println("Usage: MetaDataServer [replication_level]");
+		if (args.length != 2){
+			System.out.println("Usage: MetaDataServer [path] [replication_level]");
 			System.exit(1);
 		}
-		new MetaDataServer(Integer.parseInt(args[0])).start();
+		new MetaDataServer(args[0], Integer.parseInt(args[1])).start();
 	}
 }

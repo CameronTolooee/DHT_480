@@ -21,9 +21,9 @@ do
 	echo $line
 	ssh -nx $line mkdir -p /tmp/Tolooee_480
 	if [ $count -eq "0" ]; then
-		ssh -nx $line java -cp $final/src/ MetaDataServer &
+		ssh -nx $line java -cp $final/bin/ MetaDataServer $final 3 &
 	else
-		ssh -nx $line java -cp $final/src/ Server &
+		ssh -nx $line java -cp $final/bin/ Server &
 	fi
 	((count++))
 done < "$final/conf/servers"

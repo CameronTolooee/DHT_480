@@ -10,11 +10,22 @@ echo "Killing servers..."
 while read line
 do
 	if [ $count == "0" ]; then
-		pid=`ssh -n $line ps aux | grep "MeatDataServer" | awk '{print $2}'` # CHANGE TO META
-		ssh -n $line kill $pid
+		echo killing metaNode
+		pid=`ssh -n $line ps aux | grep "MeatDataServer" | awk '{print $2}'`
+		for tokill in $pid; do
+			if [ $tokill != "" ]; then 
+				echo "ssh -n $line kill $tokill"
+				ssh -n $line kill $tokill 
+			fi
+		done
 	else
 		pid=`ssh -n $line ps aux | grep "Server" | awk '{print $2}'`
-		ssh -n $line kill $pid
+		for tokill in $pid; do
+			if [ $tokill != "" ]; then 
+				echo "ssh -n $line kill $tokill"
+				ssh -n $line kill $tokill 
+			fi
+		done
 	fi
 	(( count++ ))
 	echo "$line killed"
