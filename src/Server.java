@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
@@ -8,7 +9,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class Server extends Thread {
+public class Server implements Runnable {
 	public static final int PORT = 35005;
 	public static final int BUFFER_SIZE = 100;
 
@@ -22,7 +23,7 @@ public class Server extends Thread {
 			// of having a script kill the process but I'm lazy
 			while (true) {
 				Socket s = serverSocket.accept();
-				// saveFile(s);
+				new Thread(this);
 				getCmd(s);
 			}
 		} catch (Exception e) {
@@ -58,10 +59,11 @@ public class Server extends Thread {
 		}
 	}
 
+	@SuppressWarnings("unchecked") // I do check but it still complains
 	private boolean saveFile(ObjectOutputStream oos, ObjectInputStream ois) throws Exception {
 		FileOutputStream fos = null;
 		ArrayList<String> serverList = null;
-		File fileName = null;
+		String fileName = null;
 		try {
 			fos = null;
 			byte[] buffer = new byte[BUFFER_SIZE];
@@ -70,13 +72,14 @@ public class Server extends Thread {
 			if (o instanceof ArrayList){
 				serverList = (ArrayList<String>)o;		
 			}
-						// 2nd is list of remaining servers
+			// 2nd is list of remaining servers
 			o = ois.readObject();
 			if (o instanceof String) {
+				fileName = o.toString();
 				fos = new FileOutputStream("/tmp/Tolooee_480/" + o.toString());
-			} else
+			} else {
 				throw new Exception("Expected a String (a filename) from stream but got: " + o.getClass());
-
+			}
 
 			// 3rd is the conntents of the file by one BUFFER_SIZE at a time
 			Integer bytesRead = 0;
@@ -91,24 +94,61 @@ public class Server extends Thread {
 				if (!(o instanceof byte[]))
 					throw new Exception("Expected a byte[] (the buffer) from stream but got: " + o.getClass());
 				buffer = (byte[]) o;
+				
+				
 				// Write data to output file.
-				fos.write(buffer, 0, bytesRead);
-			} while (bytesRead == BUFFER_SIZE); // we are done when the buffer
-												// is not full or is 0
+				try {
+					fos.write(buffer, 0, bytesRead);
+				} catch (IOException e) {
+					update(fileName.toString(), false);
+					return false;
+				}
+				
+				
+			} while (bytesRead == BUFFER_SIZE); // we are done when the buffer is not full or is 0
 			// If we get to here the file write was successful
 			System.out.println("File transfer successful"); // REMOVE ME
-			
+			update(fileName.toString(), true);
 			o = ois.readObject();
+			File file = null;
 			if (o instanceof File)
-				fileName = (File) o;
+				file = (File) o;
 
 			serverList.remove(0);
-			propagate(serverList, fileName);
+			propagate(serverList, file);
 			return true;
 		} finally { // cleanup
 			if (fos != null)
 				fos.close();
 		}
+	}
+
+	private void update(String fileName, boolean outcome){
+		Socket sock = null;
+		ObjectOutputStream oos = null;
+		ObjectInputStream ois = null;
+		try {
+			sock = new Socket(MetaDataServer.name, 35005);
+			oos = new ObjectOutputStream(sock.getOutputStream());
+			ois = new ObjectInputStream(sock.getInputStream());
+			oos.writeObject("update");
+			oos.writeObject(fileName);
+			oos.writeObject(new Boolean(outcome));
+		} catch (Exception e){
+			e.printStackTrace();
+		} finally {
+			try {
+			if (sock != null)
+				sock.close();
+			if (oos != null)
+				oos.close();
+			if (ois != null)
+				ois.close();
+			}catch (IOException ioe){
+				ioe.printStackTrace();
+			}
+		}
+		
 	}
 
 	// this is only for PA1 and I hate this lol 
@@ -158,6 +198,6 @@ public class Server extends Thread {
 		// its multi threaded so in order to run this we have to call the start
 		// method
 		// which takes care of constructions and such..
-		new Server().start();
+		new Thread (new Server()).start();
 	}
 }

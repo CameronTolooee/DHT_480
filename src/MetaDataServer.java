@@ -1,45 +1,45 @@
 import java.io.File;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.TreeMap;
 import java.util.Scanner;
+import java.util.TreeMap;
 
-public class MetaDataServer extends Thread {
+public class MetaDataServer implements Runnable {
 	// Treemaps are the same as hashMap but they are sorted
-	private TreeMap<File, String> file_map; // map file to server
+	private TreeMap<String, String> file_map; // map file to server
 	private TreeMap<String, Integer> servers; // map server to num of files stored
 	private Ring ring; // DHT ring overlay
 	private int repLevel; // replication level TBD by client
 	private String homeDir;
+	public static String name = "homer";
+	private Socket clientSocket;
 
-	public MetaDataServer(String homeDir, int replicationLevel) {
+	public MetaDataServer(String homeDir, int replicationLevel, Socket s) {
 		this.homeDir = homeDir;
 		repLevel = replicationLevel;
+		clientSocket = s;
 		ring = new Ring(homeDir);
-		file_map = new TreeMap<File, String>();
+		file_map = new TreeMap<String, String>();
 		servers = new TreeMap<String, Integer>();
 		retrieveServerList();
 	}
 
 	@Override
 	public void run() {
-		ServerSocket serverSocket = null;
 		try {
-			serverSocket = new ServerSocket(Server.PORT);
-			// Same as server should have a way to gracefully exit
-			while (true) {
-				Socket s = serverSocket.accept();
-				getCmd(s);
-			}
+			getCmd(clientSocket);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
 	private void getCmd(Socket socket) throws Exception {
+		pulse();
 		ObjectOutputStream oos = null;
 		ObjectInputStream ois = null;
 		try {
@@ -49,18 +49,26 @@ public class MetaDataServer extends Thread {
 			Object o = ois.readObject();
 			if (o instanceof String) {
 				if (o.equals("store")) {
-					System.out.println("Meta: recieved store cmd :"+o.toString());
+					System.out.println("Meta: recieved store cmd: " + o.toString());
 					o = ois.readObject();
-					if (o instanceof String){
+					if (o instanceof String) {
 						ArrayList<String> result = store(o.toString());
 						oos.writeObject(result);
 					}
 					// store stuff
 				} else if (o.equals("get")) {
+					System.out.println("Meta: recieved get cmd: " + o.toString());
+
 					// get stuff
 				} else if (o.equals("status")) {
+					System.out.println("Meta: recieved store status: " + o.toString());
+
 					// print status of servers
 					oos.writeObject(status());
+				} else if (o.equals("update")) {
+					System.out.println("Meta: recieved store update: " + o.toString());
+
+					update(ois, socket.getInetAddress().getHostName());
 				} else {
 					throw new Exception(o + " is not a valid command. Commands are \"store\" and \"get\"");
 				}
@@ -74,14 +82,28 @@ public class MetaDataServer extends Thread {
 		}
 	}
 
-	private String status(){
-		System.out.println("FDF: "+file_map);
+	private void pulse() { // This only checks network connection but not server connection..
+		boolean reachable = false;
+		for (String server : servers.keySet()) {
+			try {
+				reachable = InetAddress.getByName(server).isReachable(100);
+				if (!reachable) {
+					System.out.println(server + " is down.");
+				} else
+					System.out.println("pusle: " + server + " is up");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private String status() {
 		String result = "";
 		result += ("*-----------------------------------*\n");
 		result += String.format("|  %-20s%-13s|\n", "ip", "# of files");
 		result += ("*-----------------------------------*\n");
-		for (String s: servers.keySet()){
-				result += String.format("| %-27s%-7d|\n", s, servers.get(s));
+		for (String s : servers.keySet()) {
+			result += String.format("| %-27s%-7d|\n", s, servers.get(s));
 		}
 		result += ("*-----------------------------------*\n");
 		return result;
@@ -91,8 +113,8 @@ public class MetaDataServer extends Thread {
 	private void retrieveServerList() {
 		Scanner sc = null;
 		try {
-			sc = new Scanner(new File(homeDir+"/conf/servers")); // Ultimately this should be done through environment
-			if(sc.hasNext())
+			sc = new Scanner(new File(homeDir + "/conf/servers")); // Ultimately this should be done through environment
+			if (sc.hasNext())
 				sc.next(); // remove metanode
 			while (sc.hasNext()) { // variables to determine path instead of hard coded path.
 				servers.put(sc.next(), new Integer(0));
@@ -147,11 +169,21 @@ public class MetaDataServer extends Thread {
 		return result;
 	}
 
-
-	@SuppressWarnings("unused")
-	private void update(File f) {
+	private void update(ObjectInputStream ois, String host) throws Exception {
 		// update info after storing/removing file
-		System.out.println("TODO");
+		Object o = ois.readObject();
+		String fileName = null;
+		if (o instanceof String)
+			fileName = (String) o;
+		boolean success = (Boolean) ois.readObject();
+		System.out.println("UPDATING: " + host);
+		if (success) {
+			if (servers.containsKey(host))
+				servers.put(host, servers.get(host) + 1);
+			file_map.put(fileName, host);
+		} else {
+			System.out.println("Failed to write");
+		}
 	}
 
 	// Do this still
@@ -162,10 +194,21 @@ public class MetaDataServer extends Thread {
 	}
 
 	public static void main(String args[]) {
-		if (args.length != 2){
+		if (args.length != 2) {
 			System.out.println("Usage: MetaDataServer [path] [replication_level]");
 			System.exit(1);
 		}
-		new MetaDataServer(args[0], Integer.parseInt(args[1])).start();
+		ServerSocket serverSocket = null;
+
+		try {
+			serverSocket = new ServerSocket(Server.PORT);
+			// Same as server should have a way to gracefully exit
+			while (true) {
+				Socket s = serverSocket.accept();
+				new Thread(new MetaDataServer(args[0], Integer.parseInt(args[1]), s)).start();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }

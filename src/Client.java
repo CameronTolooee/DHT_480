@@ -9,8 +9,6 @@ import java.util.Scanner;
 
 public class Client {	
 	
-	private String meta;
-
 	public static void main(String[] args) throws Exception {
 
 		if (args.length > 2 || args.length < 1) {
@@ -61,7 +59,7 @@ public class Client {
 			}
 			System.out.println(stat); // print the string it sends back
 		} catch (Exception e){
-			System.out.println(e);
+			e.printStackTrace();
 		} finally { // clean up
 			if (socket != null)
 				socket.close();
@@ -91,7 +89,7 @@ public class Client {
 			sc = new Scanner(System.in);
 			result = sc.next();
 		} catch (Exception e) {
-			System.out.println(e);
+			e.printStackTrace();
 		} finally {
 			if (sc != null)
 				sc.close();
@@ -100,6 +98,7 @@ public class Client {
 	}
 
 	// Takes the filename to write the file to.
+	@SuppressWarnings("unchecked")
 	private static boolean write(String fileName) throws Exception {
 		ObjectInputStream ois = null;
 		ObjectOutputStream oos = null;
@@ -120,10 +119,11 @@ public class Client {
 					recieved = true;
 				System.out.println("...");
 			}
-
+			socket.close();
 			File file = new File(fileName);
 			String server = servers.get(0);
 			System.out.println("Storing to server: "+server);
+			
 			socket = new Socket(server, 35005); // open socket on port 35005
 
 			// Use object stream to send java objects over the socket connection.
@@ -151,7 +151,7 @@ public class Client {
 			return ois.readBoolean();
 
 			} catch (Exception e){
-				System.out.println(e);
+				e.printStackTrace();
 				return false;
 			}
 			// Cleanup
@@ -166,10 +166,4 @@ public class Client {
 				ois.close();
 		}
 	}
-
-
-	private void update(Socket sock, String mesg){
-		// maybe
-	}
-
 }

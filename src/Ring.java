@@ -16,7 +16,7 @@ public class Ring {
 		ringSize = (1 << 7)-1; // keyspace = 2^7 --> bit shifting is neat!
 		Scanner sc = null;
 		try { 
-			sc = new Scanner(new File(homeDir+"/conf/servers")); // env variables again
+			sc = new Scanner(new File(this.homeDir+"/conf/servers")); // env variables again
 			// Hash the ip of servers to the ring to
 			while (sc.hasNext()){
 				String ip = sc.next();

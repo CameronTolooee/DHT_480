@@ -14,6 +14,7 @@ DONE environment variables
 ******** Coding stuff *********
 *******************************
 
+IO class to abstract away read/write/sends/sockets/everything
 DONE Client API
 DONE Linear write from server-to-server rather than client-to-servers
 - retrieve
