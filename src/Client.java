@@ -1,5 +1,7 @@
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -70,9 +72,83 @@ public class Client {
 		}
 	}
 
-	private static void get(String fileName) {
-		// TODO Auto-generated method stub
-		
+	@SuppressWarnings("unchecked")
+	private static void get(String fileName) throws IOException {
+		ObjectInputStream ois = null;
+		ObjectOutputStream oos = null;
+		FileOutputStream fos = null;
+		Socket sock = null;
+		Object o = null;
+		byte[] buffer = new byte[Server.BUFFER_SIZE];
+		try {
+			sock = new Socket(MetaDataServer.name, 35005);
+			oos = new ObjectOutputStream(sock.getOutputStream());
+			oos.writeObject("get");
+			oos.writeObject(fileName);
+			boolean recieved = false;
+			ArrayList<String> servers = null;
+			while (!recieved){
+				ois = new ObjectInputStream(sock.getInputStream());
+				servers = (ArrayList<String>)ois.readObject();
+				System.out.println("Client: recieved from Meta");
+				if(servers != null)
+					recieved = true;
+			}
+			System.out.println("Servers: "+servers);
+			int cntr = 0;
+			while(recieved){
+				System.out.println(MetaDataServer.getRep());
+				if(cntr == MetaDataServer.getRep()){
+					System.out.println("Unable to retrieve file: "+fileName+" servers are down.");
+					System.exit(-1);
+				}
+				try {
+					sock = new Socket(servers.get(cntr++), 35005); // socket to data server
+					oos = new ObjectOutputStream(sock.getOutputStream());
+					ois = new ObjectInputStream(sock.getInputStream());
+				}	catch (Exception e) {
+					System.out.println(servers.get(cntr-1)+" is not reachable.");
+					continue;
+				}
+				oos.writeObject("get");
+				oos.writeObject(fileName); 
+				fos = new FileOutputStream("./" + fileName+ ".new");
+				
+				Integer bytesRead = 0;
+				do {
+					// Get size of buffer from stream
+					o = ois.readObject();
+					if (!(o instanceof Integer))
+						throw new Exception("Expected a Integer (the buffer size) from stream but got: " + o.getClass());
+					bytesRead = (Integer) o;
+					System.out.println(bytesRead);
+					// read the buffer
+					o = ois.readObject();
+					if (!(o instanceof byte[]))
+						throw new Exception("Expected a byte[] (the buffer) from stream but got: " + o.getClass());
+					buffer = (byte[]) o;
+					
+					
+					// Write data to output file.
+					try {
+						fos.write(buffer, 0, bytesRead);
+					} catch (IOException e) {
+						System.out.println(servers.get(cntr-1)+" is not reachable.");
+						continue;
+					}
+				} while (bytesRead == Server.BUFFER_SIZE); // we are done when the buffer is not full or is 0
+				// If we get to here the file write was successful
+				recieved = false;
+
+			}
+		} catch (Exception e){
+			e.printStackTrace();
+		} finally {
+			sock.close();
+			oos.close();
+			ois.close();
+			fos.close();
+		}
 	}
 
 	private static void usage(){
@@ -99,41 +175,43 @@ public class Client {
 
 	// Takes the filename to write the file to.
 	@SuppressWarnings("unchecked")
-	private static boolean write(String fileName) throws Exception {
+	private static void write(String fileName) throws Exception {
 		ObjectInputStream ois = null;
 		ObjectOutputStream oos = null;
 		FileInputStream fis = null;
-		Socket socket = null;
+		Socket metaSocket = null;
+		Socket dataSocket = null;
 		try {
-			socket = new Socket("homer", 35005);
-			oos = new ObjectOutputStream(socket.getOutputStream());
+			metaSocket = new Socket(MetaDataServer.name, 35005);
+			oos = new ObjectOutputStream(metaSocket.getOutputStream());
 			oos.writeObject("store");
 			oos.writeObject(fileName);
 			boolean recieved = false;
 			ArrayList<String> servers = null;
 			while (!recieved){
-				ois = new ObjectInputStream(socket.getInputStream());
+				ois = new ObjectInputStream(metaSocket.getInputStream());
 				servers = (ArrayList<String>)ois.readObject();
 				System.out.println("Client: recieved from Meta");
 				if(servers != null)
 					recieved = true;
 				System.out.println("...");
 			}
-			socket.close();
+			metaSocket.close();
 			File file = new File(fileName);
+			System.out.println(servers);
 			String server = servers.get(0);
-			System.out.println("Storing to server: "+server);
+			System.out.println("Client: Storing to server: "+server);
 			
-			socket = new Socket(server, 35005); // open socket on port 35005
+			dataSocket = new Socket(server, 35005); // open socket on port 35005
 
 			// Use object stream to send java objects over the socket connection.
-			ois = new ObjectInputStream(socket.getInputStream());
-			oos = new ObjectOutputStream(socket.getOutputStream());
-
+			ois = new ObjectInputStream(dataSocket.getInputStream());
+			oos = new ObjectOutputStream(dataSocket.getOutputStream());
+			oos.writeObject("store");
 			// First write the filename as it will be saved on the server
 			// --- TODO this name should be determined by the user
-			oos.writeObject("store");
 			oos.writeObject(servers);
+
 			oos.writeObject(file.getName());
 			fis = new FileInputStream(file);
 			byte[] buffer = new byte[Server.BUFFER_SIZE]; 
@@ -148,22 +226,24 @@ public class Client {
 			} // a copy instead of passing the reference. idk if this is needed.
 			
 			oos.writeObject(file);
-			return ois.readBoolean();
 
 			} catch (Exception e){
 				e.printStackTrace();
-				return false;
 			}
 			// Cleanup
 		 finally {
-			if (socket != null)
-				socket.close();
+			 try {
+			if (dataSocket != null)
+				dataSocket.close();
 			if (fis != null)
 				fis.close();
 			if (oos != null)
 				oos.close();
 			if (ois != null)
 				ois.close();
+			 } catch (Exception e){
+				 e.printStackTrace();
+			 }
 		}
 	}
 }

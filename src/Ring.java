@@ -18,6 +18,7 @@ public class Ring {
 		try { 
 			sc = new Scanner(new File(this.homeDir+"/conf/servers")); // env variables again
 			// Hash the ip of servers to the ring to
+			sc.next(); // remove meta server
 			while (sc.hasNext()){
 				String ip = sc.next();
 				mappings.put( (ip.hashCode()) %ringSize, ip); // stores (ring_position, ip)

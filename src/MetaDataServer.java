@@ -11,12 +11,12 @@ import java.util.TreeMap;
 
 public class MetaDataServer implements Runnable {
 	// Treemaps are the same as hashMap but they are sorted
-	private TreeMap<String, String> file_map; // map file to server
-	private TreeMap<String, Integer> servers; // map server to num of files stored
+	private static TreeMap<String, ArrayList<String>> file_map; // map file to server
+	private static TreeMap<String, Integer> servers; // map server to num of files stored
 	private Ring ring; // DHT ring overlay
-	private int repLevel; // replication level TBD by client
+	private static int repLevel = 3; // replication level TBD by client
 	private String homeDir;
-	public static String name = "homer";
+	public static String name = "homer.cs.colostate.edu";
 	private Socket clientSocket;
 
 	public MetaDataServer(String homeDir, int replicationLevel, Socket s) {
@@ -24,7 +24,16 @@ public class MetaDataServer implements Runnable {
 		repLevel = replicationLevel;
 		clientSocket = s;
 		ring = new Ring(homeDir);
-		file_map = new TreeMap<String, String>();
+		file_map = new TreeMap<String, ArrayList<String>>();
+		servers = new TreeMap<String, Integer>();
+		retrieveServerList();
+	}
+
+	public MetaDataServer(String homeDir, int replicationLevel) {
+		this.homeDir = homeDir;
+		repLevel = replicationLevel;
+		ring = new Ring(homeDir);
+		file_map = new TreeMap<String, ArrayList<String>>();
 		servers = new TreeMap<String, Integer>();
 		retrieveServerList();
 	}
@@ -58,7 +67,11 @@ public class MetaDataServer implements Runnable {
 					// store stuff
 				} else if (o.equals("get")) {
 					System.out.println("Meta: recieved get cmd: " + o.toString());
-
+					o = ois.readObject();
+					if (o instanceof String){
+						String filename = (String) o;
+						oos.writeObject(this.retreive(filename));
+					}
 					// get stuff
 				} else if (o.equals("status")) {
 					System.out.println("Meta: recieved store status: " + o.toString());
@@ -89,8 +102,8 @@ public class MetaDataServer implements Runnable {
 				reachable = InetAddress.getByName(server).isReachable(100);
 				if (!reachable) {
 					System.out.println(server + " is down.");
-				} else
-					System.out.println("pusle: " + server + " is up");
+				} //else
+					//System.out.println("pusle: " + server + " is up");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -99,25 +112,27 @@ public class MetaDataServer implements Runnable {
 
 	private String status() {
 		String result = "";
-		result += ("*-----------------------------------*\n");
-		result += String.format("|  %-20s%-13s|\n", "ip", "# of files");
-		result += ("*-----------------------------------*\n");
-		for (String s : servers.keySet()) {
-			result += String.format("| %-27s%-7d|\n", s, servers.get(s));
+		synchronized(MetaDataServer.class){
+			result += ("*-----------------------------------*\n");
+			result += String.format("|  %-20s%-13s|\n", "ip", "# of files");
+			result += ("*-----------------------------------*\n");
+			for (String s : servers.keySet()) {
+				result += String.format("| %-27s%-7d|\n", s, servers.get(s));
+			}
+			result += ("*-----------------------------------*\n");
 		}
-		result += ("*-----------------------------------*\n");
 		return result;
 	}
 
 	// get the list of servers from the config file.
-	private void retrieveServerList() {
+	private synchronized void retrieveServerList() {
 		Scanner sc = null;
 		try {
 			sc = new Scanner(new File(homeDir + "/conf/servers")); // Ultimately this should be done through environment
 			if (sc.hasNext())
 				sc.next(); // remove metanode
 			while (sc.hasNext()) { // variables to determine path instead of hard coded path.
-				servers.put(sc.next(), new Integer(0));
+					servers.put(sc.next(), new Integer(0));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -132,8 +147,6 @@ public class MetaDataServer implements Runnable {
 		ArrayList<String> list = new ArrayList<String>();
 		File f = new File(file);
 		list.add(ring.assignFileToNode(f));
-		int update = servers.get(list.get(0));
-		servers.put(list.get(0), update + 1);
 		addReplicas(list);
 		return list;
 	}
@@ -147,8 +160,8 @@ public class MetaDataServer implements Runnable {
 			if (!list.contains(tmp)) {
 				list.add(tmp);
 				++cntr;
-				int update = servers.get(tmp);
-				servers.put(tmp, update + 1);
+				//int update = servers.get(tmp);
+				//servers.put(tmp, update + 1);
 			}
 		}
 	}
@@ -159,7 +172,7 @@ public class MetaDataServer implements Runnable {
 		String result = null;
 		for (String s : servers.keySet()) {
 			if (servers.get(s) < lowest) {
-				if (!ignore.contains(servers.get(s))) {
+				if (!ignore.contains(s)) {
 					result = s;
 					lowest = servers.get(s);
 				}
@@ -169,7 +182,7 @@ public class MetaDataServer implements Runnable {
 		return result;
 	}
 
-	private void update(ObjectInputStream ois, String host) throws Exception {
+	private static void update(ObjectInputStream ois, String host) throws Exception {
 		// update info after storing/removing file
 		Object o = ois.readObject();
 		String fileName = null;
@@ -178,19 +191,27 @@ public class MetaDataServer implements Runnable {
 		boolean success = (Boolean) ois.readObject();
 		System.out.println("UPDATING: " + host);
 		if (success) {
-			if (servers.containsKey(host))
-				servers.put(host, servers.get(host) + 1);
-			file_map.put(fileName, host);
+			if (servers.containsKey(host)) {
+					servers.put(host, servers.get(host) + 1);
+			}
+			if (file_map.containsKey(fileName)) {
+				file_map.get(fileName).add(host);
+			} else {
+				ArrayList<String> newEntry = new ArrayList<String>();
+				newEntry.add(host);
+				file_map.put(fileName, newEntry);
+			}
 		} else {
 			System.out.println("Failed to write");
 		}
 	}
-
-	// Do this still
-	public static String retreive() {
-
-		return null;
-
+		// Do this still
+	private ArrayList<String> retreive(String filename) {
+		return file_map.get(filename);
+	}
+	
+	public static synchronized int getRep(){
+		return repLevel;
 	}
 
 	public static void main(String args[]) {
@@ -201,11 +222,17 @@ public class MetaDataServer implements Runnable {
 		ServerSocket serverSocket = null;
 
 		try {
+			servers = new TreeMap<String, Integer>();
+			file_map = new TreeMap<String, ArrayList<String>>();
+			repLevel = 3;
+			
 			serverSocket = new ServerSocket(Server.PORT);
+			MetaDataServer mds = new MetaDataServer(args[0], Integer.parseInt(args[1]));
 			// Same as server should have a way to gracefully exit
 			while (true) {
 				Socket s = serverSocket.accept();
-				new Thread(new MetaDataServer(args[0], Integer.parseInt(args[1]), s)).start();
+				mds.clientSocket = s;
+				new Thread(mds).start();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

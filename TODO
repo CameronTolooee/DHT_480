@@ -14,15 +14,13 @@ DONE environment variables
 ******** Coding stuff *********
 *******************************
 
-IO class to abstract away read/write/sends/sockets/everything
-DONE Client API
-DONE Linear write from server-to-server rather than client-to-servers
-- retrieve
-DONE Make MetaDataServer alone
-DONE Status function
-- make servers update meta node rather than assumptions | THIS BEFORE RETRIEVE
-	* this should also update file_map					| THIS BEFORE RETRIEVE
-- testing.. always testing
+- IO class to abstract away read/write/sends/sockets/everything
+- fix hardcoded rep level in code and scripts
+- fix hardcoded metaServer (both hardcodes are harder fixes because of stupid thread saftey issues >=[ )
+- duplicate detection?
+- consolidate code with that one red head girl
+- clean up 	
+- branch away from PA1 and work towards term project 			
 - Chord look-up <-- worrying about this after PA1
 - Stuff too far ahead to worry about..
 

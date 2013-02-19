@@ -12,20 +12,17 @@ import java.util.Arrays;
 public class Server implements Runnable {
 	public static final int PORT = 35005;
 	public static final int BUFFER_SIZE = 100;
-
+	private Socket metaSocket;
+	
+	public Server(Socket s){
+		metaSocket = s;
+	}
+	
 	@Override
 	public void run() {
-		ServerSocket serverSocket = null;
+
 		try {
-			serverSocket = new ServerSocket(PORT);
-			// Should probably have a way to gracfully bring down servers
-			// instead
-			// of having a script kill the process but I'm lazy
-			while (true) {
-				Socket s = serverSocket.accept();
-				new Thread(this);
-				getCmd(s);
-			}
+			getCmd(metaSocket);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -38,14 +35,16 @@ public class Server implements Runnable {
 			oos = new ObjectOutputStream(socket.getOutputStream());
 			ois = new ObjectInputStream(socket.getInputStream());
 			// First thing sent is the cmd
+
 			Object o = ois.readObject();
 			if (o instanceof String) {
 				if (o.equals("store")){
 					//store stuff
-					oos.writeBoolean(saveFile(oos, ois));
+					oos.writeObject(saveFile(oos, ois));
 				} else if (o.equals("get")){
 					//get stuff
-					System.out.println("Getting: "+o+" (but not really)");
+					System.out.println("Server: recieved cmd get from: "+socket.getInetAddress().getHostName());
+					get(oos, ois);
 				} else {
 					throw new Exception(o +" is not a valid command. Commands are \"store\" and \"get\"");
 				}
@@ -56,6 +55,32 @@ public class Server implements Runnable {
 		} finally {
 			oos.close();
 			ois.close();
+		}
+	}
+
+	private void get(ObjectOutputStream oos, ObjectInputStream ois) throws IOException {
+		String fileName = null;
+		FileInputStream fis = null;
+		try {
+			Object o = ois.readObject();
+			if (o instanceof String)
+				fileName = o.toString();
+			File file = new File("/tmp/Tolooee_480/"+fileName);
+			fis = new FileInputStream(file);
+			byte[] buffer = new byte[Server.BUFFER_SIZE]; 
+			Integer bytesRead = 0;
+			// read from file stream into buffer
+			// each iteration fills one buffer and sends it
+			// once the file is read (ie: bytes read == 0) we stop
+	
+			while ((bytesRead = fis.read(buffer)) > 0) { // Stop when there is no more to read
+				oos.writeObject(bytesRead);
+				oos.writeObject(Arrays.copyOf(buffer, buffer.length)); // don't want overwrite reference if it is being used elsewhere so create
+			} // a copy instead of passing the reference. idk if this is needed.
+		} catch (Exception e){
+			e.printStackTrace();
+		} finally {
+			fis.close();
 		}
 	}
 
@@ -77,11 +102,11 @@ public class Server implements Runnable {
 			if (o instanceof String) {
 				fileName = o.toString();
 				fos = new FileOutputStream("/tmp/Tolooee_480/" + o.toString());
+
 			} else {
 				throw new Exception("Expected a String (a filename) from stream but got: " + o.getClass());
 			}
-
-			// 3rd is the conntents of the file by one BUFFER_SIZE at a time
+			// 3rd is the contents of the file by one BUFFER_SIZE at a time
 			Integer bytesRead = 0;
 			do {
 				// Get size of buffer from stream
@@ -184,7 +209,11 @@ public class Server implements Runnable {
 				oos.writeObject(Arrays.copyOf(buffer, buffer.length)); // don't want overwrite reference if it is being used elsewhere so create
 			} // a copy instead of passing the reference. idk if this is needed.
 			oos.writeObject(f);
-			return ois.readBoolean();
+			Object o = ois.readObject();
+			Boolean b = false;
+			if (o instanceof Boolean)
+				b = (Boolean)o;
+			return b;
 		} 			// Cleanup
 		 finally {
 			if (socket != null)
@@ -198,6 +227,18 @@ public class Server implements Runnable {
 		// its multi threaded so in order to run this we have to call the start
 		// method
 		// which takes care of constructions and such..
-		new Thread (new Server()).start();
+		ServerSocket serverSocket = null;
+		try {
+			serverSocket = new ServerSocket(PORT);
+			// Should probably have a way to gracfully bring down servers
+			// instead
+			// of having a script kill the process but I'm lazy
+			while (true) {
+				Socket s = serverSocket.accept();
+				new Thread(new Server(s)).start();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }
