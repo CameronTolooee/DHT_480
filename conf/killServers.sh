@@ -14,9 +14,9 @@ do
 		for tokill in $pid; do
 			if [ $tokill != "" ]; then 
 				if [ $line == `hostname` ]; then
-					kill $tokill
+					kill $tokill 2> /dev/null
 				else
-					ssh -n $line kill $tokill 
+					ssh -n $line kill $tokill 2> /dev/null  
 				fi
 			fi
 		done
@@ -25,11 +25,10 @@ do
 		pid=`ssh -n $line ps aux | grep "Server" | awk '{print $2}'`
 		for tokill in $pid; do
 			if [ $tokill != "" ]; then 
-				echo "ssh -n $line kill $tokill"
 				if [ $line == `hostname` ]; then
-					kill -9 $tokill
+					kill -9 $tokill 2> /dev/null
 				else
-					ssh -n $line kill $tokill
+					ssh -n $line kill $tokill 2> /dev/null 
 				fi
 			fi
 		done

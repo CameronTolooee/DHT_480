@@ -1,32 +1,40 @@
-DHT_480
+PA1
 Cameron Tolooee
-Annika Muehlbradt
-Feb 4th, 2013
+Feb 21st, 2013
 *------------------------------------------------------------------------------*
-|																			   |
-| You must have password-less ssh on department machines. See 				   |
+|                                                                              |
+| You must have password-less ssh on department machines. See                  |
 | www.cs.colostate.edu/~info/faq for more info. All servers currently run on   | 
-| port 35005.																   |
-| 																			   |
-| Steps to get running:														   |
-| 																			   |
-| 1.) start bash shell with "bash" command and set DHT_HOMEDIR to the root of  |
-| 	  the project "export path/to/project"									   |
-| 																			   |
-| 2.) edit the servers file to select which machines will included in the 	   | 
-| 	cluster one machine name per line (ip addresses should work but untested). |
-| 	The first name listed will host the MetaDataServer.    				   	   |
-| 																			   |
-| 3.) run "./killServers.sh" to make sure there are no servers already up	   |
-| 																			   |
-| 4.) cd to $DHT_HOMEDIR/src and run the "make" to compile					   |
-| 																			   |
-| 5.) run "./config.sh" to bring all servers in the config file up			   |
-| 																			   |
-| 6.) run "java Client store file_name" to store a local file to the DHT	   |
-| 	run "java Client status" for DHT status 								   |
-| 																			   |
+| port 35005. All files will stored to /tmp/Tolooee_480 on the servers. The    |
+| default replication level is 3. To change this,  change the argument to the  |
+| config.sh script to the desired replication level.                           |
+|                                                                              |
+| Steps to get running:                                                        |
+|                                                                              |
+| 1.) start a bash shell with "bash" command and set DHT_HOMEDIR to the root   |
+|      of the project --  "export path/to/project"                             |
+|                                                                              |
+| 2.) edit the $DHT_HOMEDIR/conf/servers file to select which machines will    | 
+|   included in the cluster one machine name per line. The first name listed   |
+|   will host the Metadata Server.                                             |
+|                                                                              |
+| 3.) run "$DHT_HOMEDIR/conf/killServers.sh" to make sure there are no servers |
+|      already up                                                              |
+|                                                                              |
+| 4.) cd to $DHT_HOMEDIR/src and run the "make" to compile                     |
+|                                                                              |
+| 5.) run "$DHT_HOMEDIR/conf/config.sh" to bring all servers in the config     |
+|      file up. You can optionally add an integer argument to determine the    |
+|      replication level. The default is 3.                                    |   
+|                                                                              |
+| 6.) cd to $DHT_HOMEDIR/bin and run the following commands to use the system: |
+|                                                                              |
+|      "java Client store file_name drs_filename" -- to store a local file     |
+|      "java Client get drs_filename" -- to retrieve a file from the system    |
+|      "java Client status" -- for status                                      |
+|                                                                              |
+| 7.) Once finished run "$DHT_HOMEDIR/conf/killServers.sh" to bring down the   |
+|      servers specified in the servers file.                                  |
+|                                                                              |
 *------------------------------------------------------------------------------*
 
-
-As always, Work in progress!
