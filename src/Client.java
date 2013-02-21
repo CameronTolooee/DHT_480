@@ -1,19 +1,20 @@
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class Client {	
 	
 	public static void main(String[] args) throws Exception {
 
-		if (args.length > 2 || args.length < 1) {
+		if (args.length > 3 || args.length < 1) {
 			usage();
 		}
 		
@@ -21,12 +22,15 @@ public class Client {
 		// if no file supplied, prompt user for one
 		if (cmd.equals("store")) {
 			String fileName = null;
-			if (args.length == 1) {
+			String serverFileName = null;
+			if (args.length == 1 || args.length == 2) {
 				fileName = getFileFromUser();
+				serverFileName = getFileFromUser();
 			} else {
 				fileName = args[1];
+				serverFileName = args[2];
 			}
-			write(fileName);
+			write(fileName, serverFileName);
 		} else if (cmd.equals("get")){
 			String fileName = null;
 			if (args.length == 1) {
@@ -90,11 +94,13 @@ public class Client {
 			while (!recieved){
 				ois = new ObjectInputStream(sock.getInputStream());
 				servers = (ArrayList<String>)ois.readObject();
-				System.out.println("Client: recieved from Meta");
 				if(servers != null)
 					recieved = true;
 			}
-			System.out.println("Servers: "+servers);
+			if (servers.size() == 0){
+				System.out.println("File "+fileName+" does not exist.");
+				return;
+			}
 			int cntr = 0;
 			while(recieved){
 				System.out.println(MetaDataServer.getRep());
@@ -112,7 +118,7 @@ public class Client {
 				}
 				oos.writeObject("get");
 				oos.writeObject(fileName); 
-				fos = new FileOutputStream("./" + fileName+ ".new");
+				fos = new FileOutputStream("./" + fileName);
 				
 				Integer bytesRead = 0;
 				do {
@@ -121,7 +127,6 @@ public class Client {
 					if (!(o instanceof Integer))
 						throw new Exception("Expected a Integer (the buffer size) from stream but got: " + o.getClass());
 					bytesRead = (Integer) o;
-					System.out.println(bytesRead);
 					// read the buffer
 					o = ois.readObject();
 					if (!(o instanceof byte[]))
@@ -144,10 +149,14 @@ public class Client {
 		} catch (Exception e){
 			e.printStackTrace();
 		} finally {
-			sock.close();
-			oos.close();
-			ois.close();
-			fos.close();
+			if (sock != null)
+				sock.close();
+			if (oos != null)
+				oos.close();
+			if (ois != null)
+				ois.close();
+			if (fos != null)
+				fos.close();
 		}
 	}
 
@@ -175,7 +184,7 @@ public class Client {
 
 	// Takes the filename to write the file to.
 	@SuppressWarnings("unchecked")
-	private static void write(String fileName) throws Exception {
+	private static void write(String fileName, String serverFileName) throws Exception {
 		ObjectInputStream ois = null;
 		ObjectOutputStream oos = null;
 		FileInputStream fis = null;
@@ -191,14 +200,11 @@ public class Client {
 			while (!recieved){
 				ois = new ObjectInputStream(metaSocket.getInputStream());
 				servers = (ArrayList<String>)ois.readObject();
-				System.out.println("Client: recieved from Meta");
 				if(servers != null)
 					recieved = true;
-				System.out.println("...");
 			}
 			metaSocket.close();
 			File file = new File(fileName);
-			System.out.println(servers);
 			String server = servers.get(0);
 			System.out.println("Client: Storing to server: "+server);
 			
@@ -212,8 +218,14 @@ public class Client {
 			// --- TODO this name should be determined by the user
 			oos.writeObject(servers);
 
-			oos.writeObject(file.getName());
-			fis = new FileInputStream(file);
+			oos.writeObject(serverFileName);
+			try {
+				fis = new FileInputStream(file);
+			} catch(FileNotFoundException e){
+				System.out.println("file: "+fileName+" does not exist.");
+				return;
+			}
+			
 			byte[] buffer = new byte[Server.BUFFER_SIZE]; 
 			Integer bytesRead = 0;
 			// read from file stream into buffer

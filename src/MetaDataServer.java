@@ -58,7 +58,6 @@ public class MetaDataServer implements Runnable {
 			Object o = ois.readObject();
 			if (o instanceof String) {
 				if (o.equals("store")) {
-					System.out.println("Meta: recieved store cmd: " + o.toString());
 					o = ois.readObject();
 					if (o instanceof String) {
 						ArrayList<String> result = store(o.toString());
@@ -66,20 +65,20 @@ public class MetaDataServer implements Runnable {
 					}
 					// store stuff
 				} else if (o.equals("get")) {
-					System.out.println("Meta: recieved get cmd: " + o.toString());
 					o = ois.readObject();
 					if (o instanceof String){
 						String filename = (String) o;
-						oos.writeObject(this.retreive(filename));
+						ArrayList<String> result = this.retreive(filename);
+						if (result == null)
+							result = new ArrayList<String>();
+						oos.writeObject(result);
 					}
 					// get stuff
 				} else if (o.equals("status")) {
-					System.out.println("Meta: recieved store status: " + o.toString());
 
 					// print status of servers
 					oos.writeObject(status());
 				} else if (o.equals("update")) {
-					System.out.println("Meta: recieved store update: " + o.toString());
 
 					update(ois, socket.getInetAddress().getHostName());
 				} else {
@@ -146,7 +145,8 @@ public class MetaDataServer implements Runnable {
 	public ArrayList<String> store(String file) {
 		ArrayList<String> list = new ArrayList<String>();
 		File f = new File(file);
-		list.add(ring.assignFileToNode(f));
+		// list.add(ring.assignFileToNode(f)); removing this to hardcode the DRS
+		list.add(findLowest(list));
 		addReplicas(list);
 		return list;
 	}
@@ -189,7 +189,6 @@ public class MetaDataServer implements Runnable {
 		if (o instanceof String)
 			fileName = (String) o;
 		boolean success = (Boolean) ois.readObject();
-		System.out.println("UPDATING: " + host);
 		if (success) {
 			if (servers.containsKey(host)) {
 					servers.put(host, servers.get(host) + 1);

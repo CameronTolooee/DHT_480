@@ -43,7 +43,6 @@ public class Server implements Runnable {
 					oos.writeObject(saveFile(oos, ois));
 				} else if (o.equals("get")){
 					//get stuff
-					System.out.println("Server: recieved cmd get from: "+socket.getInetAddress().getHostName());
 					get(oos, ois);
 				} else {
 					throw new Exception(o +" is not a valid command. Commands are \"store\" and \"get\"");
@@ -140,9 +139,13 @@ public class Server implements Runnable {
 				file = (File) o;
 
 			serverList.remove(0);
-			propagate(serverList, file);
+			propagate(serverList, file, fileName);
 			return true;
-		} finally { // cleanup
+		} catch (Exception e){
+			System.out.println("Socket closed");
+			return false;
+		}
+		finally { // cleanup
 			if (fos != null)
 				fos.close();
 		}
@@ -179,7 +182,7 @@ public class Server implements Runnable {
 	// this is only for PA1 and I hate this lol 
 	// its exactly the same as Client write method I just use it to follow the 
 	// rules of PA1. Its ugly and stupid I know.. but it works =]
-	private boolean propagate(ArrayList<String> servers, File fileName) throws Exception{
+	private boolean propagate(ArrayList<String> servers, File fileName, String serverFileName) throws Exception{
 		if(servers.size() == 0){
 			return true;		
 		}
@@ -189,14 +192,13 @@ public class Server implements Runnable {
 		FileInputStream fis = null;
 		try {
 			String server = servers.get(0);
-			System.out.println("PROPAGATING TO "+server);
 			socket = new Socket(server, 35005);
 			oos = new ObjectOutputStream(socket.getOutputStream());
 			ois = new ObjectInputStream(socket.getInputStream());
 			oos.writeObject("store");
 			oos.writeObject(servers);
-			oos.writeObject(fileName.getName());
-			File f = new File("/tmp/Tolooee_480/"+fileName.getName());
+			oos.writeObject(serverFileName);
+			File f = new File("/tmp/Tolooee_480/"+serverFileName);
 			fis = new FileInputStream(f);
 			byte[] buffer = new byte[Server.BUFFER_SIZE]; 
 			Integer bytesRead = 0;
