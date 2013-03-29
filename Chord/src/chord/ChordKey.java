@@ -1,6 +1,12 @@
+package chord;
+
 
 public class ChordKey {
 	private int key;
+	
+	public ChordKey(String ip){
+		this.key = ip.hashCode()%ChordHash.KEY_LENGTH;
+	}
 	
 	public ChordKey(int key){
 		this.key = key%ChordHash.KEY_LENGTH;

@@ -1,0 +1,266 @@
+package chord;
+import java.io.File;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
+import sockets_layer.IO;
+import dht_event.DHTEvent;
+import dht_event.DHTEvent.EventType;
+import dht_event.DHTEventHandler;
+import dht_event.JoinEvent;
+import dht_event.LookupEvent;
+
+
+public class ChordNode {
+	public static final int PORT = 1884;
+	private String id;
+	private ChordKey key;
+	private ChordNode predecessor;
+	private ChordNode successor;
+	private ChordFingerTable fingerTable;
+
+	public ChordNode(String nodeId) {
+		this.id = nodeId;
+		this.key = new ChordKey(Math.abs(id.hashCode()));
+		this.fingerTable = new ChordFingerTable(this);
+		predecessor = null;
+		successor = this;
+	}
+
+	public void join(ChordNode destNode) {
+		predecessor = null;
+		//successor = destNode.findSuccessor(this.getKey());
+		destNode.findSuccessor(this.getKey(), EventType.JOIN);
+		//successor = //?? can the event handler return a node?
+		//stabilize();
+		destNode.updateTable(successor);
+	}
+	
+	public void findSuccessor(ChordKey target_key, EventType type) {
+		
+		try{
+			
+			ChordNode node = largestPrecedingNode(target_key);
+			DHTEvent event = type == EventType.LOOKUP ? new LookupEvent(this.getKey(), node.getKey()) : new JoinEvent(this.getKey(), node.getKey());
+			if (node == this) {
+				//return successor.findSuccessor(target_key);			
+				Socket socket = new Socket(successor.getId(), PORT);
+				IO communicator = new IO(socket);
+				communicator.sendEvent(event);
+			} else{
+				//return node.findSuccessor(target_key);
+				Socket socket = new Socket(node.getId(), PORT);
+				IO communicator = new IO(socket);
+				communicator.sendEvent(event);
+			}
+			
+		}catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	/*
+	public void findSuccessor(ChordKey target_key) {
+		try{
+//			// if node is its own successor return itself
+//			if (this == successor) {
+//				//return this;
+////				Socket socket = new Socket(this.getId(), PORT);
+////				ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+////				ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+////				IO communicator = new IO(socket,ois,oos);
+//			}
+//			// if target is between this and successor then return successor or they are equal
+//			if (target_key.isBetween(this.key, successor.getKey()) || target_key.getKey() == successor.getKey().getKey()) {
+//				return successor;
+//			} else { // otherwise get the largest node st the key is in range
+				ChordNode node = largestPrecedingNode(target_key);
+				if (node == this) {
+					//return successor.findSuccessor(target_key);
+					Socket socket = new Socket(successor.getId(), PORT);
+					IO communicator = new IO(socket);
+					communicator.sendMessage("lookup");
+					communicator.sendKey(target_key);
+				} else{
+					//return node.findSuccessor(target_key);
+					Socket socket = new Socket(node.getId(), PORT);
+					IO communicator = new IO(socket);
+					communicator.sendMessage("lookup");
+					communicator.sendKey(target_key);
+				}
+			//}
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	*/
+	
+	public void lookup(ChordKey key){
+		this.findSuccessor(key, EventType.LOOKUP);
+	}
+	
+	public void lookup(File file){
+		lookup(new ChordKey(file.hashCode()));
+	}
+
+	public void lookup(String filename){
+		lookup(new ChordKey(filename.hashCode()));
+	}
+	
+	private ChordNode largestPrecedingNode(ChordKey target_key) {
+		for (int i = ChordHash.TABLE_SIZE - 1; i >= 0; i--) {
+			ChordTableEntry entry = fingerTable.getEntry(i);
+			ChordKey table_key = entry.getNode().getKey();
+			if (table_key.isBetween(this.getKey(), target_key)) {
+				return entry.getNode();
+			}
+		}
+		return this;
+	}
+
+	/**
+	 * Verifies the successor, and tells the successor about this node. Should be called periodically.
+	 */
+	public void stabilize() {
+		this.predecessor = successor.predecessor;
+		if (this.predecessor == null) {
+			this.predecessor = successor;
+		}
+		this.successor.predecessor = this;
+		this.predecessor.successor = this;
+	}
+
+	/**
+	 * Refreshes finger table entries.
+	 */
+	public void updateTable(ChordNode node) {
+		for (int i = 0; i < fingerTable.size(); i++) {
+			ChordTableEntry entry = fingerTable.getEntry(i);
+			ChordNode corr = findNextTableEntry(entry.getPosition(), node, node);
+			entry.setNode(corr);
+		}
+	}
+
+	private ChordNode findNextTableEntry(int pos, ChordNode node, ChordNode orig) {
+		ChordKey i = new ChordKey(pos);
+		if (i.isBetween(orig.getKey(), node.getKey()) || pos == node.getKey().getKey()) {
+			return node;
+		} else {
+			ChordNode corr = findNextTableEntry(pos, node.successor, orig);
+			return corr;
+		}
+	}
+
+	public void printFingerTable() {
+		System.out.println("=======================================================");
+		System.out.println("FingerTable: " + this + " --> position: " + key.getKey());
+		System.out.println("-------------------------------------------------------");
+		System.out.println("Predecessor: " + predecessor);
+		System.out.println("Successor: " + successor);
+		System.out.println("-------------------------------------------------------");
+		System.out.println("i    position          id");
+		System.out.println("-------------------------------------------------------");
+		for (int i = 0; i < fingerTable.size(); i++) {
+			ChordTableEntry entry = fingerTable.getEntry(i);
+			System.out.println(i + "\t " + entry.getPosition() + "\t    " + entry.getNode());
+		}
+		System.out.println("=======================================================");
+	}
+
+	public String toString() {
+		return id;
+	}
+
+	public ChordKey getKey() {
+		return key;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public ChordNode getPredecessor() {
+		return predecessor;
+	}
+
+	public ChordNode getSuccessor() {
+		return successor;
+	}
+	
+	/*
+	private static void getCmd(Socket socket, ChordNode server) throws Exception {
+		try {
+			ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+			ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+			IO communicator = new IO(socket);
+			Object o = ois.readObject();
+			if (o instanceof String) {
+				if (o.equals("lookup")) {
+					ChordKey key = (ChordKey) ois.readObject();
+
+					if(server == server.successor) {
+						communicator.sendMessage("found");
+						communicator.sendMessage(server.id);
+					} else if(key.isBetween(server.key, server.successor.getKey()) || key.getKey() == server.successor.getKey().getKey()) {
+						communicator.sendMessage("found");
+						communicator.sendMessage(server.successor.getId());
+					} else {
+						server.lookup(key);
+					}
+				} else if (o.equals("store")){
+					communicator.receiveFile();
+				} else if (o.equals("found")) {
+					String location = (String) ois.readObject();
+					communicator.sendMessage(location);
+				}else {
+					throw new Exception(o +" is not a valid command. Commands are \"store\" and \"get\"");
+				}
+			} else {
+				throw new Exception("Expected a String (the command) from stream but got: " + o.getClass());
+			}
+		} finally {
+			
+		}
+	}
+	*/
+
+	public static void main(String[] args) {
+		System.out.println("SOMTHING");
+		ServerSocket serverSocket = null;
+		ChordNode node = null;
+		try {
+			node = new ChordNode(InetAddress.getLocalHost().toString());
+			if(args.length == 1) {
+				JoinEvent event = new JoinEvent(node.getKey(), new ChordKey(args[0]));
+				IO comm = new IO(new Socket(args[0], PORT));
+				comm.sendEvent(event);
+				System.out.println("SENDING JOIN EVENT");
+
+			}
+			serverSocket = new ServerSocket(PORT);
+			while (true) {
+				Socket s = serverSocket.accept();
+				if(s != null){
+					System.out.println("recieved socket");
+				}
+				new Thread(new DHTEventHandler(s, node)).start();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void setSuccessor(ChordNode node) {
+		successor = node;
+	}
+}
