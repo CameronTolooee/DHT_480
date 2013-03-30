@@ -5,26 +5,19 @@ import java.io.Serializable;
 import chord.ChordKey;
 import chord.ChordNode;
 
-public class FoundNodeEvent implements DHTEvent, Serializable{
+public class LookupTableEvent implements Serializable, DHTEvent {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -6219821961439396765L;
-	private final EventType type = EventType.FOUND_NODE;
-	private ChordNode node;
-	public FoundNodeEvent(ChordNode node){
-		this.node = node;
+	private static final long serialVersionUID = 5716012009199456969L;
+	private final EventType type = EventType.LOOKUP_TABLE;
+	private int position;
+	
+	public LookupTableEvent(int position){
+		this.position = position;
 	}
 	
 	@Override
 	public EventType getEventType() {
 		return type;
-	}
-
-
-	public ChordNode getNode() {
-		return node;
 	}
 
 	@Override
@@ -40,9 +33,14 @@ public class FoundNodeEvent implements DHTEvent, Serializable{
 	}
 
 	@Override
-	public int getPosition() {
+	public ChordNode getNode() {
 		// TODO Auto-generated method stub
-		return 0;
+		return null;
 	}
-}
+	
+	@Override
+	public int getPosition(){
+		return position;
+	}
 
+}

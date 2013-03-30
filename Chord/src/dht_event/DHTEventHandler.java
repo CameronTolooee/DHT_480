@@ -1,6 +1,8 @@
 package dht_event;
 
+import java.io.IOException;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 import chord.ChordNode;
 
@@ -14,7 +16,7 @@ public class DHTEventHandler implements Runnable {
 	@Override
 	public void run() {
 		switch (event.getEventType()) {
-		case LOOKUP: lookup();
+		case LOOKUP:  System.out.println("handler: lookup"); lookup();
 			break;
 		case STORAGE:
 			break;
@@ -22,29 +24,85 @@ public class DHTEventHandler implements Runnable {
 			break;
 		case RBQ_EVENT:
 			break;
-		case STABLIZE:
+		case LOOKUP_TABLE: System.out.println("handler: found table"); lookupTable();
+			break;
+		case STABLIZE_S: System.out.println("handler: stabilizing succ: "); stabilizeS();
+			break;
+		case STABLIZE_P: System.out.println("handler: stabilizing pred: "); stabilizeP();
 			break;
 		case LEAVE:
 			break;
 		case SHUTDOWN:
 			break;
-		case FOUND_SUCCESSOR: found_successor();
+		case FOUND_SUCCESSOR: System.out.println("handler: found_successor"); found_successor();
 			break;
-		case FOUND_NODE:
+		case FOUND_NODE: System.out.println("handler: found node"); foundNode();
 		default:
 
 		}
 
 	}
 
+
+	private void lookupTable() {
+		if(node == node.getSuccessor()) {
+			// I am myself durp durp durp
+			FoundNodeEvent foundEvent = new FoundNodeEvent(node);
+			comm.sendEvent(foundEvent);
+		} else if(event.getDestination().isBetween(event.getOriginal(), node.getSuccessor().getKey()) || event.getDestination().getKey() == node.getSuccessor().getKey().getKey()) {
+			// Between me and successor or successor = successor
+			FoundNodeEvent foundEvent = new FoundNodeEvent(node.getSuccessor());
+			comm.sendEvent(foundEvent);
+		} else {
+			// look up in table and create another joinEvent and go around in circles
+			node.lookupL(event.getDestination());
+		}
+	}
+
+
+	private void foundTable() {
+		
+	}
+
+	private void foundNode(){
+		
+	}
+
 	public DHTEventHandler(Socket sock, ChordNode node) {
 		comm = new IO(sock);
-		System.out.println("Got back from io");
-		event = comm.getEvent();
-		System.out.println("got evetn");
-		
+		event = comm.getEvent();		
 		this.node = node;
 		//run(); doesn't need to get called explicitly
+	}
+	
+
+
+	private void stabilizeS() {
+		DHTEvent eventP  = new StabilizePEvent(node.getPredecessor()); 
+		if(node.getSuccessor().getId().equals(node.getId())){
+			node.setSuccessor(event.getNode());
+		}
+		node.setPredecessor(event.getNode());
+		System.out.println(node.getPredecessor());
+		try {
+			IO comm2 = new IO(new Socket(event.getNode().getId(), ChordNode.PORT));
+			comm2.sendEvent(eventP);
+			System.out.println("Sent stabilization event 2");
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+	
+	private void stabilizeP(){
+		node.setPredecessor(event.getNode());
+		System.out.println("STABLIZED BITCHES");
+		System.out.println(node.getId()+" S:"+ node.getSuccessor());
+		System.out.println(node.getId()+" P:"+ node.getPredecessor());
+		System.out.println(node.getPredecessor().getId()+" Succ:"+ node.getPredecessor().getSuccessor());
+		System.out.println(node.getPredecessor().getId()+" Pred:"+ node.getPredecessor().getPredecessor());
 	}
 	
 	public void lookup() {
@@ -55,36 +113,46 @@ public class DHTEventHandler implements Runnable {
 		} else if(event.getDestination().isBetween(event.getOriginal(), node.getSuccessor().getKey()) || event.getDestination().getKey() == node.getSuccessor().getKey().getKey()) {
 			// Between me and successor or successor = successor
 			FoundNodeEvent foundEvent = new FoundNodeEvent(node.getSuccessor());
+			comm.sendEvent(foundEvent);
 		} else {
 			// look up in table and create another joinEvent and go around in circles
-			node.lookup(event.getDestination());
+			node.lookupL(event.getDestination());
 		}
 		
 	}
 
 	public void join() {
-		System.out.println("in joinging method1");
-		if(node == node.getSuccessor()) {
+		if(node.getId().equals(node.getSuccessor().getId())) {
 			// I am myself durp durp durp
-			System.out.println("in joinging method2");
-
-			Found_SuccessorEvent foundEvent = new Found_SuccessorEvent(node);
+			FoundSuccessorEvent foundEvent = new FoundSuccessorEvent(node);
+			try {
+				IO comm2 = new IO(new Socket(comm.getIp(), ChordNode.PORT));
+				comm2.sendEvent(foundEvent);
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			comm.sendEvent(foundEvent);
+			System.out.println("Sent foundSucc event");
 		} else if(event.getDestination().isBetween(event.getOriginal(), node.getSuccessor().getKey()) || event.getDestination().getKey() == node.getSuccessor().getKey().getKey()) {
 			// Between me and successor or successor = successor
-			System.out.println("in joinging method3");
-			Found_SuccessorEvent foundEvent = new Found_SuccessorEvent(node.getSuccessor());
+			FoundSuccessorEvent foundEvent = new FoundSuccessorEvent(node.getSuccessor());
+			comm.sendEvent(foundEvent);
+			System.out.println("Sent foundSecc event");
 		} else {
 			// look up in table and create another joinEvent and go around in circles
-			System.out.println("in joinging method4");
-			node.lookup(event.getDestination());
+			node.lookupN(event.getDestination());
+			System.out.println("looking up");
 		}
 		
 	}
 	
 	public void found_successor(){
 		node.setSuccessor(event.getNode()); 
-		System.out.println("ADDDE SUCCESSOR!!! =]\n"+event.getNode().getId());
+		System.out.println(node.getSuccessor());
+		System.out.println("Added Successor! =]\n"+event.getNode().getId());
+		
 	}
 
 }

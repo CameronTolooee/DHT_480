@@ -1,8 +1,14 @@
 package chord;
 
+import java.io.Serializable;
 
-public class ChordTableEntry {
 
+public class ChordTableEntry implements Serializable{
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 4452611836805577436L;
 	private ChordNode node;
 	private int position;
 

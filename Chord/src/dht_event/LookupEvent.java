@@ -1,11 +1,13 @@
 package dht_event;
 
+import java.io.Serializable;
+
 import chord.ChordKey;
 import chord.ChordNode;
-import dht_event.DHTEvent.EventType;
 
-public class LookupEvent implements DHTEvent {
+public class LookupEvent implements DHTEvent, Serializable {
 
+	private static final long serialVersionUID = 6225445613706140246L;
 	private final EventType type = EventType.LOOKUP;
 	private ChordKey original;
 	private ChordKey destination; 
@@ -32,6 +34,12 @@ public class LookupEvent implements DHTEvent {
 	public ChordNode getNode() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public int getPosition() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 
 }

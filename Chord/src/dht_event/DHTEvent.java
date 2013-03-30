@@ -10,11 +10,14 @@ public interface DHTEvent {
 		 STORAGE,
 		 JOIN,
 		 RBQ_EVENT,
-		 STABLIZE,
+		 STABLIZE_P,
 		 LEAVE,
 		 SHUTDOWN,
 		 FOUND_SUCCESSOR,
-		 FOUND_NODE
+		 FOUND_NODE, 
+		 STABLIZE_S,
+		 LOOKUP_TABLE,
+		 FOUND_TABLE
 	 }
 	 
 	 public EventType getEventType();
@@ -22,5 +25,6 @@ public interface DHTEvent {
 	 public ChordKey getOriginal();
 	 public ChordKey getDestination();
 	 public ChordNode getNode();
+	 int getPosition();
 	 
 }

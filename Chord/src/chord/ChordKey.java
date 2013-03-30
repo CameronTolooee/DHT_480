@@ -1,11 +1,17 @@
 package chord;
 
+import java.io.Serializable;
 
-public class ChordKey {
+
+public class ChordKey implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -1758555486377548163L;
 	private int key;
 	
 	public ChordKey(String ip){
-		this.key = ip.hashCode()%ChordHash.KEY_LENGTH;
+		this.key = Math.abs(ip.hashCode()%ChordHash.KEY_LENGTH);
 	}
 	
 	public ChordKey(int key){

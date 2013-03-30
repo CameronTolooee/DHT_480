@@ -1,8 +1,7 @@
 package chord;
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -12,11 +11,18 @@ import sockets_layer.IO;
 import dht_event.DHTEvent;
 import dht_event.DHTEvent.EventType;
 import dht_event.DHTEventHandler;
+import dht_event.FoundTableEvent;
 import dht_event.JoinEvent;
 import dht_event.LookupEvent;
+import dht_event.LookupTableEvent;
+import dht_event.StabilizeSEvent;
 
 
-public class ChordNode {
+public class ChordNode implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 6648930404036643565L;
 	public static final int PORT = 1884;
 	private String id;
 	private ChordKey key;
@@ -36,8 +42,18 @@ public class ChordNode {
 		predecessor = null;
 		//successor = destNode.findSuccessor(this.getKey());
 		destNode.findSuccessor(this.getKey(), EventType.JOIN);
-		//successor = //?? can the event handler return a node?
-		//stabilize();
+		
+		if(this != successor){
+			DHTEvent stabilizeEventS = new StabilizeSEvent(this);
+			try {
+			IO comm = new IO(new Socket(successor.getId(), PORT));
+			comm.sendEvent(stabilizeEventS);
+			}catch (Exception e){
+				e.printStackTrace();
+			}
+		}
+
+		
 		destNode.updateTable(successor);
 	}
 	
@@ -46,7 +62,14 @@ public class ChordNode {
 		try{
 			
 			ChordNode node = largestPrecedingNode(target_key);
-			DHTEvent event = type == EventType.LOOKUP ? new LookupEvent(this.getKey(), node.getKey()) : new JoinEvent(this.getKey(), node.getKey());
+			DHTEvent event = null; 
+			if (type == EventType.LOOKUP){
+				event = new LookupEvent(this.getKey(), node.getKey());
+			} else if (type == EventType.JOIN){
+				event = new JoinEvent(this.getKey(), node.getKey());
+			}else {
+				event = new LookupTableEvent(5);
+			}
 			if (node == this) {
 				//return successor.findSuccessor(target_key);			
 				Socket socket = new Socket(successor.getId(), PORT);
@@ -105,16 +128,24 @@ public class ChordNode {
 	}
 	*/
 	
-	public void lookup(ChordKey key){
+	public void lookupT(ChordKey key){
+		this.findSuccessor(key, EventType.FOUND_TABLE);
+	}
+	
+	public void lookupL(ChordKey key){
 		this.findSuccessor(key, EventType.LOOKUP);
 	}
 	
+	public void lookupN(ChordKey key){
+		this.findSuccessor(key, EventType.JOIN);
+	}
+	
 	public void lookup(File file){
-		lookup(new ChordKey(file.hashCode()));
+		lookupL(new ChordKey(file.hashCode()));
 	}
 
 	public void lookup(String filename){
-		lookup(new ChordKey(filename.hashCode()));
+		lookupL(new ChordKey(filename.hashCode()));
 	}
 	
 	private ChordNode largestPrecedingNode(ChordKey target_key) {
@@ -138,12 +169,16 @@ public class ChordNode {
 		}
 		this.successor.predecessor = this;
 		this.predecessor.successor = this;
+		
+		
+		
 	}
 
 	/**
 	 * Refreshes finger table entries.
 	 */
 	public void updateTable(ChordNode node) {
+		printFingerTable();
 		for (int i = 0; i < fingerTable.size(); i++) {
 			ChordTableEntry entry = fingerTable.getEntry(i);
 			ChordNode corr = findNextTableEntry(entry.getPosition(), node, node);
@@ -159,6 +194,7 @@ public class ChordNode {
 			ChordNode corr = findNextTableEntry(pos, node.successor, orig);
 			return corr;
 		}
+
 	}
 
 	public void printFingerTable() {
@@ -191,6 +227,10 @@ public class ChordNode {
 
 	public ChordNode getPredecessor() {
 		return predecessor;
+	}
+	
+	public void setPredecessor(ChordNode node){
+		predecessor = node;
 	}
 
 	public ChordNode getSuccessor() {
@@ -235,24 +275,34 @@ public class ChordNode {
 	*/
 
 	public static void main(String[] args) {
-		System.out.println("SOMTHING");
+//		System.out.println("macadamia: "+ new ChordKey("129.82.47.66").getKey());
+//		System.out.println("ginko: "+ new ChordKey("129.82.47.61").getKey());
+//		System.out.println("filbert: "+ new ChordKey("129.82.47.60").getKey());
 		ServerSocket serverSocket = null;
 		ChordNode node = null;
 		try {
-			node = new ChordNode(InetAddress.getLocalHost().toString());
-			if(args.length == 1) {
-				JoinEvent event = new JoinEvent(node.getKey(), new ChordKey(args[0]));
-				IO comm = new IO(new Socket(args[0], PORT));
-				comm.sendEvent(event);
-				System.out.println("SENDING JOIN EVENT");
-
-			}
+			String ip = InetAddress.getLocalHost().toString();
+			node = new ChordNode(ip.substring(ip.indexOf('/')+1));
+			System.out.println(ip.substring(ip.indexOf('/')+1));
 			serverSocket = new ServerSocket(PORT);
+			boolean joining = (args.length == 1) ? true : false;
+			System.out.println("Created Server socket. Listening..");
+			boolean first = true;
 			while (true) {
-				Socket s = serverSocket.accept();
-				if(s != null){
-					System.out.println("recieved socket");
+				if(joining) {
+					new Thread(new ChordJoiningThread(args[0], node)).start();
+					new Thread(new ChordStabilizeThread(node)).start();
+					joining = false;
+					//node.updateTable(node);
+				} 
+				if (first && !joining){ // for first node only set pred and succ to itself for stabilzaitons
+					node.setPredecessor(node);
+					node.setSuccessor(node);
+					first = false;
 				}
+				//node.printFingerTable();
+				Socket s = serverSocket.accept();
+				System.out.println("Socket accepted");
 				new Thread(new DHTEventHandler(s, node)).start();
 			}
 		} catch (Exception e) {

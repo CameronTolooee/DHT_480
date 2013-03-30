@@ -1,9 +1,15 @@
 package dht_event;
 
+import java.io.Serializable;
+
 import chord.ChordKey;
 import chord.ChordNode;
 
-public class JoinEvent implements DHTEvent{
+public class JoinEvent implements DHTEvent, Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 4876774787291560722L;
 	public final EventType type = EventType.JOIN;
 	private ChordKey original;
 	private ChordKey destination; 
@@ -31,9 +37,10 @@ public class JoinEvent implements DHTEvent{
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
-	
-	
-	
 
+	@Override
+	public int getPosition() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 }

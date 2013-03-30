@@ -2,18 +2,18 @@ package dht_event;
 
 import java.io.Serializable;
 
-import chord.ChordKey;
-import chord.ChordNode;
+import chord.*;
 
-public class FoundNodeEvent implements DHTEvent, Serializable{
+public class FoundSuccessorEvent implements DHTEvent, Serializable{
 
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = -6219821961439396765L;
-	private final EventType type = EventType.FOUND_NODE;
-	private ChordNode node;
-	public FoundNodeEvent(ChordNode node){
+	private static final long serialVersionUID = -7560501059102424896L;
+	private final EventType type = EventType.FOUND_SUCCESSOR;
+	private final ChordNode node;
+	
+	public FoundSuccessorEvent(ChordNode node){
 		this.node = node;
 	}
 	
@@ -22,9 +22,8 @@ public class FoundNodeEvent implements DHTEvent, Serializable{
 		return type;
 	}
 
-
-	public ChordNode getNode() {
-		return node;
+	public ChordNode getNode(){
+		return this.node;
 	}
 
 	@Override
@@ -45,4 +44,3 @@ public class FoundNodeEvent implements DHTEvent, Serializable{
 		return 0;
 	}
 }
-
