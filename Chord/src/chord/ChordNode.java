@@ -66,7 +66,7 @@ public class ChordNode implements Serializable{
 			if (type == EventType.LOOKUP){
 				event = new LookupEvent(this.getKey(), node.getKey());
 			} else if (type == EventType.JOIN){
-				event = new JoinEvent(this.getKey(), node.getKey(), ip);
+				event = new JoinEvent(target_key, node.getKey(), ip); // changed
 			}else {
 				event = new LookupTableEvent(target_key, node, position, ip);
 			}
@@ -191,7 +191,7 @@ public class ChordNode implements Serializable{
 				IO comm = new IO(new Socket(successor.getId(), PORT));
 				comm.sendEvent(LTevent);
 				System.out.println("Sent Lookup Table event");
-				Thread.sleep(1000);
+				//Thread.sleep(1000);
 				
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
@@ -321,6 +321,7 @@ public class ChordNode implements Serializable{
 				node.printFingerTable();
 				Socket s = serverSocket.accept();
 				System.out.println("Socket accepted");
+				System.out.println("NUM OF SOCKETS OPEN: "+ IO.numOfSockets);
 				new Thread(new DHTEventHandler(s, node)).start();
 			}
 		} catch (Exception e) {
