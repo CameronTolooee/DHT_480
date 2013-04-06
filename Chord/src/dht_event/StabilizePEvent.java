@@ -46,4 +46,11 @@ public class StabilizePEvent implements Serializable, DHTEvent{
 		return 0;
 	}
 
+	@Override
+	public String getIP() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
 }

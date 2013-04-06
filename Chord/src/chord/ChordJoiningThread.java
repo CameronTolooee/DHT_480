@@ -18,7 +18,7 @@ public class ChordJoiningThread implements Runnable{
 	@Override
 	public void run() {
 		try {
-		JoinEvent event = new JoinEvent(node.getKey(), new ChordKey(ip));
+		JoinEvent event = new JoinEvent(node.getKey(), new ChordKey(ip), node.getId());
 		IO comm = new IO(new Socket(ip, ChordNode.PORT));
 		comm.sendEvent(event);
 		System.out.println("Sent join event.");

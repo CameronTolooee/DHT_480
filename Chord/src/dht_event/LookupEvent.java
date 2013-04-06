@@ -42,4 +42,11 @@ public class LookupEvent implements DHTEvent, Serializable {
 		return 0;
 	}
 
+	@Override
+	public String getIP() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
 }

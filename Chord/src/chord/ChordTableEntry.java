@@ -32,5 +32,9 @@ public class ChordTableEntry implements Serializable{
 	public void setPosition(int position) {
 		this.position = position;
 	}
+	
+	public String toString(){
+		return node.getId()+" "+ position;
+	}
 
 }

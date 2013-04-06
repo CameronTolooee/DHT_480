@@ -43,4 +43,10 @@ public class FoundSuccessorEvent implements DHTEvent, Serializable{
 		// TODO Auto-generated method stub
 		return 0;
 	}
+
+	@Override
+	public String getIP() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

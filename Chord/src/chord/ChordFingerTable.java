@@ -21,6 +21,10 @@ public class ChordFingerTable implements Serializable{
 		return table[i];
 	}
 	
+	public void setEntry(ChordTableEntry entry, int i){
+		table[i] = entry;
+	}
+	
 	public int size() {
 		return table.length;
 	}

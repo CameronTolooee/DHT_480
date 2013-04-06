@@ -12,11 +12,13 @@ public class JoinEvent implements DHTEvent, Serializable{
 	private static final long serialVersionUID = 4876774787291560722L;
 	public final EventType type = EventType.JOIN;
 	private ChordKey original;
-	private ChordKey destination; 
+	private ChordKey destination;
+	private String ip;
 	
-	public JoinEvent(ChordKey orig, ChordKey dest){
+	public JoinEvent(ChordKey orig, ChordKey dest, String ip){
 		original = orig;
 		destination = dest;
+		this.ip = ip;
 	}
 	
 	@Override
@@ -42,5 +44,11 @@ public class JoinEvent implements DHTEvent, Serializable{
 	public int getPosition() {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+
+	@Override
+	public String getIP() {
+		// TODO Auto-generated method stub
+		return ip;
 	}
 }

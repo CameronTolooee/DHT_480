@@ -41,7 +41,7 @@ public class ChordNode implements Serializable{
 	public void join(ChordNode destNode) {
 		predecessor = null;
 		//successor = destNode.findSuccessor(this.getKey());
-		destNode.findSuccessor(this.getKey(), EventType.JOIN);
+		destNode.findSuccessor(this.getKey(), EventType.JOIN, 0, null);
 		
 		if(this != successor){
 			DHTEvent stabilizeEventS = new StabilizeSEvent(this);
@@ -57,7 +57,7 @@ public class ChordNode implements Serializable{
 		destNode.updateTable(successor);
 	}
 	
-	public void findSuccessor(ChordKey target_key, EventType type) {
+	public void findSuccessor(ChordKey target_key, EventType type, int position, String ip) {
 		
 		try{
 			
@@ -66,9 +66,9 @@ public class ChordNode implements Serializable{
 			if (type == EventType.LOOKUP){
 				event = new LookupEvent(this.getKey(), node.getKey());
 			} else if (type == EventType.JOIN){
-				event = new JoinEvent(this.getKey(), node.getKey());
+				event = new JoinEvent(this.getKey(), node.getKey(), ip);
 			}else {
-				event = new LookupTableEvent(5);
+				event = new LookupTableEvent(target_key, node, position, ip);
 			}
 			if (node == this) {
 				//return successor.findSuccessor(target_key);			
@@ -128,16 +128,16 @@ public class ChordNode implements Serializable{
 	}
 	*/
 	
-	public void lookupT(ChordKey key){
-		this.findSuccessor(key, EventType.FOUND_TABLE);
+	public void lookupT(ChordKey key, int position, String ip){
+		this.findSuccessor(key, EventType.LOOKUP_TABLE, position, ip);
 	}
 	
 	public void lookupL(ChordKey key){
-		this.findSuccessor(key, EventType.LOOKUP);
+		this.findSuccessor(key, EventType.LOOKUP, 0, null);
 	}
 	
-	public void lookupN(ChordKey key){
-		this.findSuccessor(key, EventType.JOIN);
+	public void lookupN(ChordKey key, String ip){
+		this.findSuccessor(key, EventType.JOIN, 0, ip);
 	}
 	
 	public void lookup(File file){
@@ -178,11 +178,25 @@ public class ChordNode implements Serializable{
 	 * Refreshes finger table entries.
 	 */
 	public void updateTable(ChordNode node) {
-		printFingerTable();
-		for (int i = 0; i < fingerTable.size(); i++) {
-			ChordTableEntry entry = fingerTable.getEntry(i);
-			ChordNode corr = findNextTableEntry(entry.getPosition(), node, node);
-			entry.setNode(corr);
+//		for (int i = 0; i < fingerTable.size(); i++) {
+//			ChordTableEntry entry = fingerTable.getEntry(i);
+//			ChordNode corr = findNextTableEntry(entry.getPosition(), node, node);
+//			entry.setNode(corr);
+//		}
+		for (int i = 0; i < fingerTable.size(); ++i){
+			try{
+				ChordTableEntry entry = fingerTable.getEntry(i);
+				DHTEvent LTevent = new LookupTableEvent(new ChordKey(entry.getPosition()), this, i, this.id);
+				//System.out.println("WHICH ONE: "+ getId()+" OR "+successor.getId());
+				IO comm = new IO(new Socket(successor.getId(), PORT));
+				comm.sendEvent(LTevent);
+				System.out.println("Sent Lookup Table event");
+				Thread.sleep(1000);
+				
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} 
 		}
 	}
 
@@ -237,6 +251,10 @@ public class ChordNode implements Serializable{
 		return successor;
 	}
 	
+	public ChordFingerTable getTable(){
+		return fingerTable;
+	}
+	
 	/*
 	private static void getCmd(Socket socket, ChordNode server) throws Exception {
 		try {
@@ -275,8 +293,8 @@ public class ChordNode implements Serializable{
 	*/
 
 	public static void main(String[] args) {
-//		System.out.println("macadamia: "+ new ChordKey("129.82.47.66").getKey());
-//		System.out.println("ginko: "+ new ChordKey("129.82.47.61").getKey());
+//		System.out.println("okra: "+ new ChordKey("129.82.47.229").getKey());
+//		System.out.println("shavano: "+ new ChordKey("129.82.47.175").getKey());
 //		System.out.println("filbert: "+ new ChordKey("129.82.47.60").getKey());
 		ServerSocket serverSocket = null;
 		ChordNode node = null;
@@ -300,7 +318,7 @@ public class ChordNode implements Serializable{
 					node.setSuccessor(node);
 					first = false;
 				}
-				//node.printFingerTable();
+				node.printFingerTable();
 				Socket s = serverSocket.accept();
 				System.out.println("Socket accepted");
 				new Thread(new DHTEventHandler(s, node)).start();
