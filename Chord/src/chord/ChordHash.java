@@ -13,7 +13,7 @@ public class ChordHash implements Serializable{
 
 	public static String function = "SHA-1";
 
-	public static int KEY_LENGTH = 8;
+	public static int KEY_LENGTH = 1 << 15;
 	public static int TABLE_SIZE = (int) (Math.log(KEY_LENGTH)/Math.log(2));
 	
 

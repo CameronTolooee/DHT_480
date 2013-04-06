@@ -39,9 +39,11 @@ public class IO {
 	private static final int BUFFER_SIZE = 4096; /* Max buffer size is (2^32)- 1; 4096 bytes is the block size of the new advanced format sector drives*/
 	private FileAttribute<Set<PosixFilePermission>> FILE_PERMISSIONS = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxrwxrwx"));
 	private String ip;
+	public static int numOfSockets = 0;
 	
 	
 	public IO(Socket socket){
+		numOfSockets ++;
 		this.setIp(socket.getInetAddress().getHostAddress().toString());
 		this.socket = socket;
 		try {
@@ -263,17 +265,27 @@ public void sendKey(ChordKey key){
 	}
 	
 	public void sendEvent(DHTEvent event) {
-		
+
 		try{
 			output.writeObject(event); // is this proper??
 			output.flush();
-			
+
 		}catch(IOException e){
 			e.printStackTrace();
 		}
+//		finally{
+//			try {
+//				//input.close();
+//				numOfSockets--;
+//				socket.close();
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//		}
 	}
 	
 	protected void finalize(){
+		numOfSockets--;
 		try {
 			socket.close();
 		} catch (IOException e) {
