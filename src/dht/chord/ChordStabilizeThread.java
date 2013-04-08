@@ -2,24 +2,28 @@ package dht.chord;
 
 import java.net.Socket;
 
-import dht.net.IO;
+import java.util.concurrent.CountDownLatch;
+
 import dht.event.DHTEvent;
-import dht.event.LookupTableEvent;
 import dht.event.SUpdateTableEvent;
 import dht.event.StabilizeSEvent;
+import dht.net.IO;
 
 public class ChordStabilizeThread implements Runnable {
 
 	private ChordNode node;
+	private CountDownLatch cdl;
 	
-	public ChordStabilizeThread(ChordNode node){
+	public ChordStabilizeThread(ChordNode node, CountDownLatch cdl){
+		this.cdl = cdl;
 		this.node = node;
 	}
 	
 	@Override
 	public void run() {
 		try {
-			Thread.sleep(1000);
+			//Thread.sleep(1000);
+			cdl.await();
 			System.out.println("Done waiting");
 			System.out.println("nodeID: "+ node.getId());
 			System.out.println("succ ID: "+node.getSuccessor().getId());

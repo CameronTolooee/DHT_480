@@ -2,10 +2,14 @@ package dht.chord;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+
+import java.util.concurrent.CountDownLatch;
+
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+
 
 import dht.net.IO;
 import dht.event.DHTEvent;
@@ -40,7 +44,7 @@ public class ChordNode implements Serializable{
 	public void join(ChordNode destNode) {
 		predecessor = null;
 		//successor = destNode.findSuccessor(this.getKey());
-		destNode.findSuccessor(this.getKey(), EventType.JOIN, 0, null);
+		destNode.findSuccessor(this.getKey(), EventType.JOIN, 0, null, null);
 		
 		if(this != successor){
 			DHTEvent stabilizeEventS = new StabilizeSEvent(this);
@@ -56,7 +60,7 @@ public class ChordNode implements Serializable{
 		destNode.updateTable(successor);
 	}
 	
-	public void findSuccessor(ChordKey target_key, EventType type, int position, String ip) {
+	public void findSuccessor(ChordKey target_key, EventType type, int position, String ip, CountDownLatch latch) {
 		
 		try{
 			
@@ -65,7 +69,7 @@ public class ChordNode implements Serializable{
 			if (type == EventType.LOOKUP){
 				event = new LookupEvent(this.getKey(), node.getKey());
 			} else if (type == EventType.JOIN){
-				event = new JoinEvent(target_key, node.getKey(), ip); // changed
+				event = new JoinEvent(target_key, node.getKey(), ip, latch); // changed
 			}else {
 				event = new LookupTableEvent(target_key, node, position, ip);
 			}
@@ -89,54 +93,16 @@ public class ChordNode implements Serializable{
 		
 	}
 	
-	/*
-	public void findSuccessor(ChordKey target_key) {
-		try{
-//			// if node is its own successor return itself
-//			if (this == successor) {
-//				//return this;
-////				Socket socket = new Socket(this.getId(), PORT);
-////				ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-////				ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-////				IO communicator = new IO(socket,ois,oos);
-//			}
-//			// if target is between this and successor then return successor or they are equal
-//			if (target_key.isBetween(this.key, successor.getKey()) || target_key.getKey() == successor.getKey().getKey()) {
-//				return successor;
-//			} else { // otherwise get the largest node st the key is in range
-				ChordNode node = largestPrecedingNode(target_key);
-				if (node == this) {
-					//return successor.findSuccessor(target_key);
-					Socket socket = new Socket(successor.getId(), PORT);
-					IO communicator = new IO(socket);
-					communicator.sendMessage("lookup");
-					communicator.sendKey(target_key);
-				} else{
-					//return node.findSuccessor(target_key);
-					Socket socket = new Socket(node.getId(), PORT);
-					IO communicator = new IO(socket);
-					communicator.sendMessage("lookup");
-					communicator.sendKey(target_key);
-				}
-			//}
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	*/
-	
 	public void lookupT(ChordKey key, int position, String ip){
-		this.findSuccessor(key, EventType.LOOKUP_TABLE, position, ip);
+		this.findSuccessor(key, EventType.LOOKUP_TABLE, position, ip, null);
 	}
 	
 	public void lookupL(ChordKey key){
-		this.findSuccessor(key, EventType.LOOKUP, 0, null);
+		this.findSuccessor(key, EventType.LOOKUP, 0, null, null);
 	}
 	
-	public void lookupN(ChordKey key, String ip){
-		this.findSuccessor(key, EventType.JOIN, 0, ip);
+	public void lookupN(ChordKey key, String ip, CountDownLatch latch){
+		this.findSuccessor(key, EventType.JOIN, 0, ip, latch);
 	}
 	
 	public void lookup(File file){
@@ -167,21 +133,13 @@ public class ChordNode implements Serializable{
 			this.predecessor = successor;
 		}
 		this.successor.predecessor = this;
-		this.predecessor.successor = this;
-		
-		
-		
+		this.predecessor.successor = this;		
 	}
 
 	/**
 	 * Refreshes finger table entries.
 	 */
 	public void updateTable(ChordNode node) {
-//		for (int i = 0; i < fingerTable.size(); i++) {
-//			ChordTableEntry entry = fingerTable.getEntry(i);
-//			ChordNode corr = findNextTableEntry(entry.getPosition(), node, node);
-//			entry.setNode(corr);
-//		}
 		for (int i = 0; i < fingerTable.size(); ++i){
 			try{
 				ChordTableEntry entry = fingerTable.getEntry(i);
@@ -190,10 +148,8 @@ public class ChordNode implements Serializable{
 				IO comm = new IO(new Socket(successor.getId(), PORT));
 				comm.sendEvent(LTevent);
 				System.out.println("Sent Lookup Table event");
-				//Thread.sleep(1000);
 				
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} 
 		}
@@ -307,8 +263,9 @@ public class ChordNode implements Serializable{
 			boolean first = true;
 			while (true) {
 				if(joining) {
-					new Thread(new ChordJoiningThread(args[0], node)).start();
-					new Thread(new ChordStabilizeThread(node)).start();
+					CountDownLatch cdl = new CountDownLatch(1);
+					new Thread(new ChordJoiningThread(args[0], node, cdl)).start();
+					new Thread(new ChordStabilizeThread(node, cdl)).start();
 					joining = false;
 					//node.updateTable(node);
 				} 

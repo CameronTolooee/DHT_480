@@ -1,5 +1,7 @@
 package dht.event;
 
+import java.util.concurrent.CountDownLatch;
+
 import dht.chord.ChordKey;
 import dht.chord.ChordNode;
 
@@ -27,5 +29,6 @@ public interface DHTEvent {
 	 public ChordNode getNode();
 	 public int getPosition();
 	 public String getIP();
+	 public CountDownLatch getLatch();
 	 
 }

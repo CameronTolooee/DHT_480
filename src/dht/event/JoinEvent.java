@@ -1,6 +1,7 @@
 package dht.event;
 
 import java.io.Serializable;
+import java.util.concurrent.CountDownLatch;
 
 import dht.chord.ChordKey;
 import dht.chord.ChordNode;
@@ -14,11 +15,13 @@ public class JoinEvent implements DHTEvent, Serializable{
 	private ChordKey original;
 	private ChordKey destination;
 	private String ip;
+	private CountDownLatch latch;
 	
-	public JoinEvent(ChordKey orig, ChordKey dest, String ip){
+	public JoinEvent(ChordKey orig, ChordKey dest, String ip, CountDownLatch latch){
 		original = orig;
 		destination = dest;
 		this.ip = ip;
+		this.latch = latch;
 	}
 	
 	@Override
@@ -50,5 +53,10 @@ public class JoinEvent implements DHTEvent, Serializable{
 	public String getIP() {
 		// TODO Auto-generated method stub
 		return ip;
+	}
+	
+	@Override
+	public CountDownLatch getLatch(){
+		return latch;
 	}
 }

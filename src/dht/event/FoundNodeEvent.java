@@ -1,6 +1,7 @@
 package dht.event;
 
 import java.io.Serializable;
+import java.util.concurrent.CountDownLatch;
 
 import dht.chord.ChordKey;
 import dht.chord.ChordNode;
@@ -47,6 +48,12 @@ public class FoundNodeEvent implements DHTEvent, Serializable{
 
 	@Override
 	public String getIP() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public CountDownLatch getLatch() {
 		// TODO Auto-generated method stub
 		return null;
 	}

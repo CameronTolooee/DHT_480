@@ -185,7 +185,7 @@ public class DHTEventHandler implements Runnable {
 				System.out.println("Sent foundSecc event");
 			} else {
 				// look up in table and create another joinEvent and go around in circles
-				node.lookupN(event.getOriginal(), event.getIP()); // just changed this 1:09 pm 
+				node.lookupN(event.getOriginal(), event.getIP(), event.getLatch()); // just changed this 1:09 pm 
 				System.out.println("looking up");
 			}
 		} catch (Exception e){
@@ -202,6 +202,7 @@ public class DHTEventHandler implements Runnable {
 //		comm77.sendEvent(setpred);
 		System.out.println(node.getSuccessor());
 		System.out.println("Added Successor! =]\n"+event.getNode().getId());
+		event.getLatch().countDown();
 		}catch(Exception e){
 			e.printStackTrace();
 		}
