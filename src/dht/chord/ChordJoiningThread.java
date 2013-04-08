@@ -10,18 +10,16 @@ public class ChordJoiningThread implements Runnable{
 	
 	private String ip;
 	private ChordNode node;
-	private CountDownLatch cdl;
 	
-	public ChordJoiningThread(String ip, ChordNode node, CountDownLatch cdl){
+	public ChordJoiningThread(String ip, ChordNode node){
 		this.ip = ip;
 		this.node = node;
-		this.cdl = cdl;
 	}
 
 	@Override
 	public void run() {
 		try {
-		JoinEvent event = new JoinEvent(node.getKey(), new ChordKey(ip), node.getId(), cdl);
+		JoinEvent event = new JoinEvent(node.getKey(), new ChordKey(ip), node.getId());
 		IO comm = new IO(new Socket(ip, ChordNode.PORT));
 		comm.sendEvent(event);
 		System.out.println("Sent join event.");

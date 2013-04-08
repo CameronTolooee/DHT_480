@@ -202,7 +202,7 @@ public class DHTEventHandler implements Runnable {
 //		comm77.sendEvent(setpred);
 		System.out.println(node.getSuccessor());
 		System.out.println("Added Successor! =]\n"+event.getNode().getId());
-		event.getLatch().countDown();
+		ChordNode.latch.countDown();
 		}catch(Exception e){
 			e.printStackTrace();
 		}

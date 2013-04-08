@@ -27,6 +27,7 @@ public class ChordNode implements Serializable{
 	 */
 	private static final long serialVersionUID = 6648930404036643565L;
 	public static final int PORT = 1884;
+	public static CountDownLatch latch = new CountDownLatch(1);
 	private String id;
 	private ChordKey key;
 	private ChordNode predecessor;
@@ -69,7 +70,7 @@ public class ChordNode implements Serializable{
 			if (type == EventType.LOOKUP){
 				event = new LookupEvent(this.getKey(), node.getKey());
 			} else if (type == EventType.JOIN){
-				event = new JoinEvent(target_key, node.getKey(), ip, latch); // changed
+				event = new JoinEvent(target_key, node.getKey(), ip); // changed
 			}else {
 				event = new LookupTableEvent(target_key, node, position, ip);
 			}
@@ -263,9 +264,9 @@ public class ChordNode implements Serializable{
 			boolean first = true;
 			while (true) {
 				if(joining) {
-					CountDownLatch cdl = new CountDownLatch(1);
-					new Thread(new ChordJoiningThread(args[0], node, cdl)).start();
-					new Thread(new ChordStabilizeThread(node, cdl)).start();
+					//CountDownLatch cdl = new CountDownLatch(1);
+					new Thread(new ChordJoiningThread(args[0], node)).start();
+					new Thread(new ChordStabilizeThread(node)).start();
 					joining = false;
 					//node.updateTable(node);
 				} 

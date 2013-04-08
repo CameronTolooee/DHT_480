@@ -15,13 +15,11 @@ public class JoinEvent implements DHTEvent, Serializable{
 	private ChordKey original;
 	private ChordKey destination;
 	private String ip;
-	private CountDownLatch latch;
 	
-	public JoinEvent(ChordKey orig, ChordKey dest, String ip, CountDownLatch latch){
+	public JoinEvent(ChordKey orig, ChordKey dest, String ip){
 		original = orig;
 		destination = dest;
 		this.ip = ip;
-		this.latch = latch;
 	}
 	
 	@Override
@@ -57,6 +55,6 @@ public class JoinEvent implements DHTEvent, Serializable{
 	
 	@Override
 	public CountDownLatch getLatch(){
-		return latch;
+		return null;
 	}
 }

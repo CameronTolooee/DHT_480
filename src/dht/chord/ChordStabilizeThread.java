@@ -12,10 +12,8 @@ import dht.net.IO;
 public class ChordStabilizeThread implements Runnable {
 
 	private ChordNode node;
-	private CountDownLatch cdl;
 	
-	public ChordStabilizeThread(ChordNode node, CountDownLatch cdl){
-		this.cdl = cdl;
+	public ChordStabilizeThread(ChordNode node){
 		this.node = node;
 	}
 	
@@ -23,7 +21,7 @@ public class ChordStabilizeThread implements Runnable {
 	public void run() {
 		try {
 			//Thread.sleep(1000);
-			cdl.await();
+			ChordNode.latch.await();
 			System.out.println("Done waiting");
 			System.out.println("nodeID: "+ node.getId());
 			System.out.println("succ ID: "+node.getSuccessor().getId());
