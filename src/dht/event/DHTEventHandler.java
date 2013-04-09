@@ -3,57 +3,85 @@ package dht.event;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Date;
+import java.util.concurrent.CountDownLatch;
 
+import dht.chord.ChordHash;
 import dht.chord.ChordNode;
 import dht.chord.ChordTableEntry;
 import dht.net.IO;
 
 public class DHTEventHandler implements Runnable {
-	private IO comm;
 	private DHTEvent event;
 	private ChordNode node;
 
+	public DHTEventHandler(Socket sock, ChordNode node) {
+		IO comm = new IO(sock);
+		event = comm.getEvent();
+		System.out.println("["+new Date(System.currentTimeMillis()).toString()+"] recieved "+event.getEventType());
+		this.node = node;
+	}
+
 	@Override
 	public void run() {
-		switch (event.getEventType()) {
-		case LOOKUP:  System.out.println("handler: lookup"); lookup();
-			break;
-		case STORAGE:
-			break;
-		case JOIN: System.out.println("handler: joining"); join();
-			break;
-		case RBQ_EVENT:
-			break;
-		case LOOKUP_TABLE: System.out.println("handler: LOOKUP table"); lookupTable();
-			break;
-		case STABLIZE_S: System.out.println("handler: stabilizing succ: "); stabilizeS();
-			break;
-		case STABLIZE_P: System.out.println("handler: stabilizing pred: "); stabilizeP();
-			break;
-		case LEAVE:
-			break;
-		case SHUTDOWN:
-			break;
-		case FOUND_SUCCESSOR: System.out.println("handler: found_successor"); found_successor();
-			break;
-		case FOUND_NODE: System.out.println("handler: found node"); foundNode();
-			break;
-		case FOUND_TABLE: System.out.println("handler: found table"); foundTable();
-			break;
-		case UPDATE_TABLE: System.out.println("handler: update table"); updateTable();
-		default:
+		if(event != null) {
+			switch (event.getEventType()) {
+			case LOOKUP:  System.out.println("handler: lookup"); lookup();
+				break;
+			case STORAGE: System.out.println("handler: storage"); store();
+				break;
+			case JOIN: System.out.println("handler: joining"); join();
+				break;
+			case RBQ_EVENT:
+				break;
+			case LOOKUP_TABLE: System.out.println("handler: LOOKUP table"); lookupTable();
+				break;
+			case STABLIZE_S: System.out.println("handler: stabilizing succ: "); stabilizeS();
+				break;
+			case STABLIZE_P: System.out.println("handler: stabilizing pred: "); stabilizeP();
+				break;
+			case LEAVE:
+				break;
+			case SHUTDOWN:
+				break;
+			case FOUND_SUCCESSOR: System.out.println("handler: found_successor"); found_successor();
+				break;
+			case FOUND_NODE: System.out.println("handler: found node"); foundNode();
+				break;
+			case FOUND_TABLE: System.out.println("handler: found table"); foundTable();
+				break;
+			case UPDATE_TABLE: System.out.println("handler: update table"); updateTable();
+			default: 
+		}
 
 		}
 
 	}
+	
+	private void store() {
+		try{
+			StorageEvent sEvent = (StorageEvent) event;
+			IO comm = new IO(new Socket(node.getId(), ChordNode.PORT));
+			comm.sendFile(sEvent.getFile(), sEvent.getPath());
+			comm.receiveFile();
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+	}
 
+	private void fileCheck(IO comm) {
+		comm.receiveFile();
+	}
 
 	private void updateTable() {
 		try{
 			if(event.getIP().equals(node.getId())){
-				System.out.println("DONE = ) ");
+				System.out.println("DONE =)");
+				ChordNode.latch.countDown();
 			}else{
+				ChordNode.latch = new CountDownLatch(ChordHash.TABLE_SIZE);
 				node.updateTable(node);
+				ChordNode.latch.await();
 				DHTEvent updateTable = new SUpdateTableEvent(event.getIP());
 				IO comm = new IO(new Socket(node.getSuccessor().getId(), ChordNode.PORT));
 				comm.sendEvent(updateTable);
@@ -84,7 +112,7 @@ public class DHTEventHandler implements Runnable {
 				DHTEvent foundEvent = new FoundTableEvent(node, event.getPosition());
 				IO comm = new IO(new Socket(event.getIP(), ChordNode.PORT));
 				comm.sendEvent(foundEvent);
-				System.out.println("Sent Table Found event 2");
+				System.out.println("Sent Table Found event 2 from "+node.getId()+" to "+event.getIP());
 			} else {
 				// look up in table and create another joinEvent and go around in circles
 				System.out.println("Looking in table...");
@@ -99,6 +127,7 @@ public class DHTEventHandler implements Runnable {
 	private void foundTable() {
 		int tablePos = (1 << event.getPosition()) + node.getKey().getKey();
 		node.getTable().setEntry(new ChordTableEntry(event.getNode(), tablePos), event.getPosition());
+		ChordNode.latch.countDown();
 //		System.out.println("__________________________________________________");
 //		System.out.println(event.getNode().getId()+" "+event.getPosition());
 //		System.out.println("__________________________________________________");
@@ -108,16 +137,7 @@ public class DHTEventHandler implements Runnable {
 	private void foundNode(){
 		
 	}
-
-	public DHTEventHandler(Socket sock, ChordNode node) {
-		comm = new IO(sock);
-		event = comm.getEvent();		
-		this.node = node;
-		//run(); doesn't need to get called explicitly
-	}
 	
-
-
 	private void stabilizeS() {
 		DHTEvent eventP  = new StabilizePEvent(node.getPredecessor()); 
 		if(node.getSuccessor().getId().equals(node.getId())){
@@ -153,18 +173,23 @@ public class DHTEventHandler implements Runnable {
 		}
 	}
 	
-	public void lookup() {
-		if(node == node.getSuccessor()) {
-			// I am myself durp durp durp
-			FoundNodeEvent foundEvent = new FoundNodeEvent(node);
-			comm.sendEvent(foundEvent);
-		} else if(event.getDestination().isBetween(event.getOriginal(), node.getSuccessor().getKey()) || event.getDestination().getKey() == node.getSuccessor().getKey().getKey()) {
-			// Between me and successor or successor = successor
-			FoundNodeEvent foundEvent = new FoundNodeEvent(node.getSuccessor());
-			comm.sendEvent(foundEvent);
-		} else {
-			// look up in table and create another joinEvent and go around in circles
-			node.lookupL(event.getDestination());
+	private void lookup() {
+		try {
+			IO comm = new IO(new Socket(event.getIP(), ChordNode.PORT));
+			if(node == node.getSuccessor()) {
+				// I am myself durp durp durp
+				FoundNodeEvent foundEvent = new FoundNodeEvent(node);
+				comm.sendEvent(foundEvent);
+			} else if(event.getDestination().isBetween(event.getOriginal(), node.getSuccessor().getKey()) || event.getDestination().getKey() == node.getSuccessor().getKey().getKey()) {
+				// Between me and successor or successor = successor
+				FoundNodeEvent foundEvent = new FoundNodeEvent(node.getSuccessor());
+				comm.sendEvent(foundEvent);
+			} else {
+				// look up in table and create another joinEvent and go around in circles
+				node.lookupL(event.getDestination(), event.getIP());
+			}
+		} catch (Exception e){
+			e.printStackTrace();
 		}
 		
 	}

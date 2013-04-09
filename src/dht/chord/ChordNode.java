@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.Serializable;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -28,6 +30,7 @@ public class ChordNode implements Serializable{
 	private static final long serialVersionUID = 6648930404036643565L;
 	public static final int PORT = 1884;
 	public static CountDownLatch latch = new CountDownLatch(1);
+	
 	private String id;
 	private ChordKey key;
 	private ChordNode predecessor;
@@ -68,7 +71,7 @@ public class ChordNode implements Serializable{
 			ChordNode node = largestPrecedingNode(target_key);
 			DHTEvent event = null; 
 			if (type == EventType.LOOKUP){
-				event = new LookupEvent(this.getKey(), node.getKey());
+				event = new LookupEvent(this.getKey(), node.getKey(), ip);
 			} else if (type == EventType.JOIN){
 				event = new JoinEvent(target_key, node.getKey(), ip); // changed
 			}else {
@@ -98,8 +101,8 @@ public class ChordNode implements Serializable{
 		this.findSuccessor(key, EventType.LOOKUP_TABLE, position, ip, null);
 	}
 	
-	public void lookupL(ChordKey key){
-		this.findSuccessor(key, EventType.LOOKUP, 0, null, null);
+	public void lookupL(ChordKey key, String ip){
+		this.findSuccessor(key, EventType.LOOKUP, 0, ip, null);
 	}
 	
 	public void lookupN(ChordKey key, String ip, CountDownLatch latch){
@@ -107,11 +110,11 @@ public class ChordNode implements Serializable{
 	}
 	
 	public void lookup(File file){
-		lookupL(new ChordKey(file.hashCode()));
+		lookupL(new ChordKey(file.hashCode()), null);
 	}
 
 	public void lookup(String filename){
-		lookupL(new ChordKey(filename.hashCode()));
+		lookupL(new ChordKey(filename.hashCode()), null);
 	}
 	
 	private ChordNode largestPrecedingNode(ChordKey target_key) {
@@ -148,8 +151,7 @@ public class ChordNode implements Serializable{
 				//System.out.println("WHICH ONE: "+ getId()+" OR "+successor.getId());
 				IO comm = new IO(new Socket(successor.getId(), PORT));
 				comm.sendEvent(LTevent);
-				System.out.println("Sent Lookup Table event");
-				
+				System.out.println("Sent Lookup Table event from "+node.id +" to "+successor.getId());
 			} catch (Exception e) {
 				e.printStackTrace();
 			} 
@@ -262,9 +264,11 @@ public class ChordNode implements Serializable{
 			boolean joining = (args.length == 1) ? true : false;
 			System.out.println("Created Server socket. Listening..");
 			boolean first = true;
+		//	ExecutorService threadPool = Executors.newFixedThreadPool(15);
 			while (true) {
 				if(joining) {
-					//CountDownLatch cdl = new CountDownLatch(1);
+					//threadPool.execute(new Thread(new ChordJoiningThread(args[0], node)));
+					//threadPool.execute(new Thread(new ChordStabilizeThread(node)));
 					new Thread(new ChordJoiningThread(args[0], node)).start();
 					new Thread(new ChordStabilizeThread(node)).start();
 					joining = false;
@@ -278,7 +282,8 @@ public class ChordNode implements Serializable{
 				node.printFingerTable();
 				Socket s = serverSocket.accept();
 				System.out.println("Socket accepted");
-				System.out.println("NUM OF SOCKETS OPEN: "+ IO.numOfSockets);
+				//System.out.println(threadPool.toString());
+				//threadPool.execute(new Thread(new DHTEventHandler(s, node)));
 				new Thread(new DHTEventHandler(s, node)).start();
 			}
 		} catch (Exception e) {

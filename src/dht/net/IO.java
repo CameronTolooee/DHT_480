@@ -14,6 +14,8 @@
  ++-----------------------------------------------------------------------*/
 package dht.net;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,6 +29,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Date;
 import java.util.Set;
 
 import dht.chord.ChordKey;
@@ -40,18 +43,17 @@ public class IO {
 	private static final int BUFFER_SIZE = 4096; /* Max buffer size is (2^32)- 1; 4096 bytes is the block size of the new advanced format sector drives*/
 	private FileAttribute<Set<PosixFilePermission>> FILE_PERMISSIONS = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxrwxrwx"));
 	private String ip;
-	public static int numOfSockets = 0;
+	public static int numOfEvents = 0;
 	
 	
 	public IO(Socket socket){
-		numOfSockets ++;
 		this.setIp(socket.getInetAddress().getHostAddress().toString());
 		this.socket = socket;
 		try {
 		this.output = new ObjectOutputStream(this.socket.getOutputStream());
 		this.input = new ObjectInputStream(this.socket.getInputStream());
 		System.out.println("in IO CLass");
-		
+
 		} catch (IOException io){
 			io.printStackTrace();
 		}
@@ -133,7 +135,7 @@ public void sendKey(ChordKey key){
 		System.out.println("Sending file...");
 		
 		try{
-			
+			ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 			/* SEND THE FILE NAME AS STRING*/
 			output.writeObject(path+file.getName());
 			output.flush();
@@ -175,7 +177,6 @@ public void sendKey(ChordKey key){
 		Object o;
 		
 		try {
-
 			/* READ FILE NAME and create parent directories if they don't exist */
 			String filename = "";
 			o = input.readObject();
@@ -252,7 +253,9 @@ public void sendKey(ChordKey key){
 	public DHTEvent getEvent() {
 		Object o  = null;
 		DHTEvent event = null;
+		
 		try {
+			ObjectInputStream input = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()));
 			o = input.readObject();
 		} catch (ClassNotFoundException | IOException e) {
 			e.printStackTrace();
@@ -260,33 +263,44 @@ public void sendKey(ChordKey key){
 		if (o instanceof DHTEvent) {
 			event = (DHTEvent) o;
 		} else {
-			System.err.println("IO.java: Recieved a socket that's not an event.");
+			return null;
 		}
 		return event;
 	}
 	
-	public void sendEvent(DHTEvent event) {
-
+	public void sendEvent(DHTEvent event) {	
+		numOfEvents++;
 		try{
-			output.writeObject(event); // is this proper??
-			output.flush();
-
+			long start = System.currentTimeMillis();
+			
+			// Java's serialization sucks so do a quick primitive serialization of the event
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ObjectOutputStream oos = new ObjectOutputStream(baos);
+			oos.writeObject(event);
+			oos.close();
+			byte[] bytes = baos.toByteArray();
+			socket.getOutputStream().write(bytes);
+			socket.getOutputStream().flush();
+			
+			long finish = System.currentTimeMillis();
+			System.out.println("EVENT SIZE: "+baos.size()+" bytes");
+			System.out.println("Time took: "+(finish - start));
+			System.out.println("["+new Date(System.currentTimeMillis()).toString()+"] IO: sent "+event.getEventType()+".");
 		}catch(IOException e){
 			e.printStackTrace();
 		}
-//		finally{
-//			try {
-//				//input.close();
-//				numOfSockets--;
-//				socket.close();
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//		}
+		finally{
+			try {
+				System.out.println("closing socket");
+				//input.close();
+				socket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	protected void finalize(){
-		numOfSockets--;
 		try {
 			socket.close();
 		} catch (IOException e) {

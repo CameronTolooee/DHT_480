@@ -31,8 +31,9 @@ public class ChordStabilizeThread implements Runnable {
 				comm3.sendEvent(stabilizeEventS);
 				System.out.println("Sent stablization event");
 			}
-			//Thread.sleep(1000);
+			ChordNode.latch = new CountDownLatch(ChordHash.TABLE_SIZE);
 			node.updateTable(node);
+			ChordNode.latch.await();
 			DHTEvent updateTable = new SUpdateTableEvent(node.getId());
 			IO comm4 = new IO(new Socket(node.getSuccessor().getId(), ChordNode.PORT));
 			comm4.sendEvent(updateTable);

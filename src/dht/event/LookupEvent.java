@@ -12,10 +12,12 @@ public class LookupEvent implements DHTEvent, Serializable {
 	private final EventType type = EventType.LOOKUP;
 	private ChordKey original;
 	private ChordKey destination; 
+	private String ip;
 	
-	public LookupEvent(ChordKey orig, ChordKey dest){
+	public LookupEvent(ChordKey orig, ChordKey dest, String ip){
 		original = orig;
 		destination = dest;
+		this.ip = ip;
 	}
 	
 	@Override
@@ -45,8 +47,7 @@ public class LookupEvent implements DHTEvent, Serializable {
 
 	@Override
 	public String getIP() {
-		// TODO Auto-generated method stub
-		return null;
+		return ip;
 	}
 
 	@Override
