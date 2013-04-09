@@ -10,10 +10,10 @@ public class ChordFingerTable implements Serializable{
 	private static final long serialVersionUID = -8675399012403797889L;
 	private ChordTableEntry[] table;
 	
-	public ChordFingerTable(ChordNode node) {
+	public ChordFingerTable(String node) {
 		table = new ChordTableEntry[ChordHash.TABLE_SIZE];
 		for (int i = 0; i < table.length; ++i){
-			table[i] = new ChordTableEntry(node, node.getKey().getKey() + (1 << i));
+			table[i] = new ChordTableEntry(node, new ChordKey(node).getKey() + (1 << i));
 		}
 	}
 

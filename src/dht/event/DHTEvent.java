@@ -25,7 +25,7 @@ public interface DHTEvent {
 	 public EventType getEventType();
 	 // does this make sense??
 	 public ChordKey getOriginal();
-	 public ChordKey getDestination();
+	 public String getDestination();
 	 public ChordNode getNode();
 	 public int getPosition();
 	 public String getIP();

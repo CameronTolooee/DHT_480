@@ -14,8 +14,6 @@
  ++-----------------------------------------------------------------------*/
 package dht.net;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,6 +32,8 @@ import java.util.Set;
 
 import dht.chord.ChordKey;
 import dht.event.DHTEvent;
+import dht.event.DHTEvent.EventType;
+import dht.event.StorageEvent;
 
 public class IO {
 	
@@ -135,7 +135,7 @@ public void sendKey(ChordKey key){
 		System.out.println("Sending file...");
 		
 		try{
-			ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
+			//ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());
 			/* SEND THE FILE NAME AS STRING*/
 			output.writeObject(path+file.getName());
 			output.flush();
@@ -155,8 +155,8 @@ public void sendKey(ChordKey key){
 		}catch(IOException e){
 			e.printStackTrace();
 		}
-		/* WARNING: Socket should NOT be closed at this point. JUST FOR TESTING PURPOSES ONLY
-		}finally{
+		///* WARNING: Socket should NOT be closed at this point. JUST FOR TESTING PURPOSES ONLY
+		finally{
 			try {
 				//output.close();
 				socket.close();
@@ -164,23 +164,23 @@ public void sendKey(ChordKey key){
 				e.printStackTrace();
 			}
 		}
-		*/
+		
 			
 		System.out.println("Sending file complete...");
 	}
+	
 		
 	/* Reads a file from the socket; returns the file it read */
 	public void receiveFile(){
 		
 		System.out.println("Receiving file...");
-		
 		Object o;
-		
 		try {
 			/* READ FILE NAME and create parent directories if they don't exist */
+			System.out.println("1");
 			String filename = "";
 			o = input.readObject();
-			
+			System.out.println("1");
 			if(o instanceof String){
 				filename = createParents((String) o);
 			}else
@@ -189,11 +189,14 @@ public void sendKey(ChordKey key){
 			/* READ FILE 4096 BYTES AT A TIME
 			 * Note: FileOutputStream creates empty file!!!
 			 */
+			System.out.println("2");
 			FileOutputStream fileOutput = new FileOutputStream(filename);
+			System.out.println("3");
 			byte[] buffer = new byte[BUFFER_SIZE];
 			Integer bytesRead = 0;
-
+			System.out.println("4");
 			do {
+				System.out.println("5");
 				o = input.readObject();
 				if(o instanceof Integer){
 					bytesRead = (Integer) o;
@@ -216,9 +219,9 @@ public void sendKey(ChordKey key){
 		}catch(IOException | ClassNotFoundException e){ 
 			e.printStackTrace();
 		}
-		/*
-		WARNING: Socket should NOT be closed at this point. JUST FOR TESTING PURPOSES ONLY
-		}finally{
+		///*
+		//WARNING: Socket should NOT be closed at this point. JUST FOR TESTING PURPOSES ONLY
+		finally{
 			try {
 				//input.close();
 				socket.close();
@@ -226,7 +229,7 @@ public void sendKey(ChordKey key){
 				e.printStackTrace();
 			}
 		}
-		*/
+		//*/
 		
 		System.out.println("Receiving file complete...");
 	}
@@ -236,11 +239,13 @@ public void sendKey(ChordKey key){
 	private String createParents(String filepath){
 		
 		String filename = filepath;
-		
+
 		if(filepath.contains("/")){
 			String path = filepath.substring(0, filepath.lastIndexOf("/"));
+
 			try {
 				Files.createDirectories(Paths.get(path), FILE_PERMISSIONS);
+
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -253,9 +258,14 @@ public void sendKey(ChordKey key){
 	public DHTEvent getEvent() {
 		Object o  = null;
 		DHTEvent event = null;
-		
+
 		try {
-			ObjectInputStream input = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()));
+			//System.out.println("getting event");
+			//ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+			//out.flush();
+			//ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
+		//	System.out.println("getting event");
+
 			o = input.readObject();
 		} catch (ClassNotFoundException | IOException e) {
 			e.printStackTrace();
@@ -269,23 +279,32 @@ public void sendKey(ChordKey key){
 	}
 	
 	public void sendEvent(DHTEvent event) {	
-		numOfEvents++;
 		try{
 			long start = System.currentTimeMillis();
 			
 			// Java's serialization sucks so do a quick primitive serialization of the event
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			ObjectOutputStream oos = new ObjectOutputStream(baos);
-			oos.writeObject(event);
-			oos.close();
-			byte[] bytes = baos.toByteArray();
-			socket.getOutputStream().write(bytes);
-			socket.getOutputStream().flush();
-			
-			long finish = System.currentTimeMillis();
-			System.out.println("EVENT SIZE: "+baos.size()+" bytes");
-			System.out.println("Time took: "+(finish - start));
-			System.out.println("["+new Date(System.currentTimeMillis()).toString()+"] IO: sent "+event.getEventType()+".");
+//			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//			ObjectOutputStream oos = new ObjectOutputStream(baos);
+//			oos.writeObject(event);
+//			oos.close();
+//			byte[] bytes = baos.toByteArray();
+//			socket.getOutputStream().flush();
+//			socket.getOutputStream().write(bytes);
+//			socket.getOutputStream().flush();
+			if(event.getEventType() == EventType.STORAGE) {
+				output.writeObject(event);
+				output.flush();
+				StorageEvent se = (StorageEvent) event;
+				sendFile(se.getFile(), se.gethPath());
+			} else {
+				output.writeObject(event);
+				output.flush();
+				
+				long finish = System.currentTimeMillis();
+				//System.out.println("EVENT SIZE: "+baos.size()+" bytes");
+				System.out.println("Time took: "+(finish - start));
+				System.out.println("["+new Date(System.currentTimeMillis()).toString()+"] IO: sent "+event.getEventType()+".");
+			}
 		}catch(IOException e){
 			e.printStackTrace();
 		}

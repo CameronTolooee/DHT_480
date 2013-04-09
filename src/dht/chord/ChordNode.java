@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.io.Serializable;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -40,7 +38,7 @@ public class ChordNode implements Serializable{
 	public ChordNode(String nodeId) {
 		this.id = nodeId;
 		this.key = new ChordKey(Math.abs(id.hashCode()));
-		this.fingerTable = new ChordFingerTable(this);
+		this.fingerTable = new ChordFingerTable(this.getId());
 		predecessor = null;
 		successor = this;
 	}
@@ -67,24 +65,22 @@ public class ChordNode implements Serializable{
 	public void findSuccessor(ChordKey target_key, EventType type, int position, String ip, CountDownLatch latch) {
 		
 		try{
-			
-			ChordNode node = largestPrecedingNode(target_key);
+			String node = largestPrecedingNode(target_key);
 			DHTEvent event = null; 
 			if (type == EventType.LOOKUP){
-				event = new LookupEvent(this.getKey(), node.getKey(), ip);
+				event = new LookupEvent(target_key, node, ip);
 			} else if (type == EventType.JOIN){
-				event = new JoinEvent(target_key, node.getKey(), ip); // changed
+				event = new JoinEvent(target_key, node, ip); // changed
 			}else {
 				event = new LookupTableEvent(target_key, node, position, ip);
 			}
-			if (node == this) {
+			if (node.equals(this.getId())) {
 				//return successor.findSuccessor(target_key);			
 				Socket socket = new Socket(successor.getId(), PORT);
 				IO communicator = new IO(socket);
 				communicator.sendEvent(event);
 			} else{
-				//return node.findSuccessor(target_key);
-				Socket socket = new Socket(node.getId(), PORT);
+				Socket socket = new Socket(node, PORT);
 				IO communicator = new IO(socket);
 				communicator.sendEvent(event);
 			}
@@ -117,15 +113,15 @@ public class ChordNode implements Serializable{
 		lookupL(new ChordKey(filename.hashCode()), null);
 	}
 	
-	private ChordNode largestPrecedingNode(ChordKey target_key) {
+	private String largestPrecedingNode(ChordKey target_key) {
 		for (int i = ChordHash.TABLE_SIZE - 1; i >= 0; i--) {
 			ChordTableEntry entry = fingerTable.getEntry(i);
-			ChordKey table_key = entry.getNode().getKey();
+			ChordKey table_key = new ChordKey(entry.getNode());
 			if (table_key.isBetween(this.getKey(), target_key)) {
 				return entry.getNode();
 			}
 		}
-		return this;
+		return this.getId();
 	}
 
 	/**
@@ -147,7 +143,7 @@ public class ChordNode implements Serializable{
 		for (int i = 0; i < fingerTable.size(); ++i){
 			try{
 				ChordTableEntry entry = fingerTable.getEntry(i);
-				DHTEvent LTevent = new LookupTableEvent(new ChordKey(entry.getPosition()), this, i, this.id);
+				DHTEvent LTevent = new LookupTableEvent(new ChordKey(entry.getPosition()), this.getId(), i, this.id);
 				//System.out.println("WHICH ONE: "+ getId()+" OR "+successor.getId());
 				IO comm = new IO(new Socket(successor.getId(), PORT));
 				comm.sendEvent(LTevent);
@@ -279,7 +275,7 @@ public class ChordNode implements Serializable{
 					node.setSuccessor(node);
 					first = false;
 				}
-				node.printFingerTable();
+			//	node.printFingerTable();
 				Socket s = serverSocket.accept();
 				System.out.println("Socket accepted");
 				//System.out.println(threadPool.toString());

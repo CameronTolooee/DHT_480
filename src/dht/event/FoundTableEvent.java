@@ -10,10 +10,10 @@ public class FoundTableEvent implements Serializable, DHTEvent{
 
 	private static final long serialVersionUID = 3102403291267394252L;
 	private final EventType type = EventType.FOUND_TABLE;
-	private ChordNode node;
+	private String node;
 	private int tablePos;
 	
-	public FoundTableEvent(ChordNode node, int tablePos){
+	public FoundTableEvent(String node, int tablePos){
 		this.node = node;
 		this.tablePos = tablePos;
 	}
@@ -31,7 +31,7 @@ public class FoundTableEvent implements Serializable, DHTEvent{
 	}
 
 	@Override
-	public ChordKey getDestination() {
+	public String getDestination() {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -39,7 +39,7 @@ public class FoundTableEvent implements Serializable, DHTEvent{
 	@Override
 	public ChordNode getNode() {
 		// TODO Auto-generated method stub
-		return node;
+		return null;
 	}
 
 	@Override
@@ -50,7 +50,7 @@ public class FoundTableEvent implements Serializable, DHTEvent{
 	@Override
 	public String getIP() {
 		// TODO Auto-generated method stub
-		return null;
+		return node;
 	}
 
 	@Override

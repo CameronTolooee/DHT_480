@@ -1,10 +1,18 @@
 package dht.client;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 
+import dht.chord.ChordKey;
 import dht.chord.ChordNode;
 import dht.event.DHTEvent;
+import dht.event.FoundNodeEvent;
+import dht.event.LookupEvent;
 import dht.event.StorageEvent;
 import dht.net.IO;
 
@@ -20,10 +28,23 @@ public class Client {
 	
 	private void store(String fileName, String server){
 		try {
-			IO comm = new IO(new Socket(server,  ChordNode.PORT));
+			ServerSocket ss = new ServerSocket(ChordNode.PORT);
+			Socket sock = new Socket(server,  ChordNode.PORT);
+			IO comm = new IO(sock);
 			File file = new File(fileName);
-			DHTEvent store = new StorageEvent(file, "/tmp/muelooee/");
-			comm.sendEvent(store);
+			String myIP = InetAddress.getLocalHost().toString();
+			System.out.println(myIP.substring(myIP.indexOf('/')+1));
+			DHTEvent lookup = new LookupEvent(new ChordKey(file.hashCode()), server, myIP.substring(myIP.indexOf('/')+1));
+			comm.sendEvent(lookup);
+			Socket socket = ss.accept();
+			ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+			ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+			FoundNodeEvent found = (FoundNodeEvent) in.readObject();
+			IO comm2 = new IO(new Socket(found.getIP(), ChordNode.PORT));
+			StorageEvent store = new StorageEvent(file, "/tmp/muehlooee/");
+			comm2.sendEvent(store);
+		
+			
 		}catch (Exception e){
 			e.printStackTrace();
 		}

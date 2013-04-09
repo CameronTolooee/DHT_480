@@ -11,11 +11,11 @@ public class LookupTableEvent implements Serializable, DHTEvent {
 	private static final long serialVersionUID = 5716012009199456969L;
 	private final EventType type = EventType.LOOKUP_TABLE;
 	private ChordKey original;
-	private ChordNode destination;
+	private String destination;
 	private int position;
 	private String ip;
 	
-	public LookupTableEvent(ChordKey orig, ChordNode dest, int position, String ip){
+	public LookupTableEvent(ChordKey orig, String dest, int position, String ip){
 		this.original = orig;
 		this.destination = dest;
 		this.position = position;
@@ -29,20 +29,16 @@ public class LookupTableEvent implements Serializable, DHTEvent {
 
 	@Override
 	public ChordKey getOriginal() {
-		// TODO Auto-generated method stub
 		return original;
 	}
 
-	@Override
-	public ChordKey getDestination() {
-		// TODO Auto-generated method stub
-		return null;
+	public String getDestination() {
+		return destination;
 	}
 
 	@Override
 	public ChordNode getNode() {
-		// TODO Auto-generated method stub
-		return destination;
+		return null;
 	}
 
 	@Override
@@ -52,13 +48,11 @@ public class LookupTableEvent implements Serializable, DHTEvent {
 
 	@Override
 	public String getIP() {
-		// TODO Auto-generated method stub
 		return ip;
 	}
 
 	@Override
 	public CountDownLatch getLatch() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 }

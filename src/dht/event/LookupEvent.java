@@ -11,10 +11,10 @@ public class LookupEvent implements DHTEvent, Serializable {
 	private static final long serialVersionUID = 6225445613706140246L;
 	private final EventType type = EventType.LOOKUP;
 	private ChordKey original;
-	private ChordKey destination; 
+	private String destination; 
 	private String ip;
 	
-	public LookupEvent(ChordKey orig, ChordKey dest, String ip){
+	public LookupEvent(ChordKey orig, String dest, String ip){
 		original = orig;
 		destination = dest;
 		this.ip = ip;
@@ -29,7 +29,7 @@ public class LookupEvent implements DHTEvent, Serializable {
 		return original;
 	}
 	
-	public ChordKey getDestination(){
+	public String getDestination(){
 		return destination;
 	}
 

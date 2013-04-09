@@ -9,19 +9,19 @@ public class ChordTableEntry implements Serializable{
 	 * 
 	 */
 	private static final long serialVersionUID = 4452611836805577436L;
-	private ChordNode node;
+	private String node;
 	private int position;
 
-	public ChordTableEntry(ChordNode node, int position) {
+	public ChordTableEntry(String node, int position) {
 		this.node = node;
 		this.position = position % ChordHash.KEY_LENGTH;
 	}
 
-	public ChordNode getNode() {
+	public String getNode() {
 		return node;
 	}
 
-	public void setNode(ChordNode node) {
+	public void setNode(String node) {
 		this.node = node;
 	}
 
@@ -34,7 +34,7 @@ public class ChordTableEntry implements Serializable{
 	}
 	
 	public String toString(){
-		return node.getId()+" "+ position;
+		return node+" "+ position;
 	}
 
 }

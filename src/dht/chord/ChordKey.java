@@ -4,9 +4,7 @@ import java.io.Serializable;
 
 
 public class ChordKey implements Serializable{
-	/**
-	 * 
-	 */
+
 	private static final long serialVersionUID = -1758555486377548163L;
 	private int key;
 	
@@ -15,7 +13,7 @@ public class ChordKey implements Serializable{
 	}
 	
 	public ChordKey(int key){
-		this.key = key%ChordHash.KEY_LENGTH;
+		this.key = Math.abs(key%ChordHash.KEY_LENGTH);
 	}
 	
 	public boolean isBetween(int lower, int upper){

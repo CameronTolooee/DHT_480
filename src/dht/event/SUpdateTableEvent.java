@@ -30,7 +30,7 @@ public class SUpdateTableEvent implements DHTEvent, Serializable {
 	}
 
 	@Override
-	public ChordKey getDestination() {
+	public String getDestination() {
 		// TODO Auto-generated method stub
 		return null;
 	}

@@ -36,7 +36,7 @@ public class StabilizePEvent implements Serializable, DHTEvent{
 	}
 
 	@Override
-	public ChordKey getDestination() {
+	public String getDestination() {
 		// TODO Auto-generated method stub
 		return null;
 	}
