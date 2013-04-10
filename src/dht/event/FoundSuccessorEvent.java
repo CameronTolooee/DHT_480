@@ -1,9 +1,7 @@
 package dht.event;
 
 import java.io.Serializable;
-import java.util.concurrent.CountDownLatch;
 
-import dht.chord.ChordKey;
 import dht.chord.ChordNode;
 
 
@@ -31,32 +29,8 @@ public class FoundSuccessorEvent implements DHTEvent, Serializable{
 	}
 
 	@Override
-	public ChordKey getOriginal() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public String getDestination() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int getPosition() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
 	public String getIP() {
-		// TODO Auto-generated method stub
 		return null;
 	}
-
-	@Override
-	public CountDownLatch getLatch() {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	
 }

@@ -1,10 +1,5 @@
 package dht.event;
 
-import java.util.concurrent.CountDownLatch;
-
-import dht.chord.ChordKey;
-import dht.chord.ChordNode;
-
 public interface DHTEvent {
 	 public enum EventType {
 		 LOOKUP,
@@ -23,12 +18,6 @@ public interface DHTEvent {
 	 }
 	 
 	 public EventType getEventType();
-	 // does this make sense??
-	 public ChordKey getOriginal();
-	 public String getDestination();
-	 public ChordNode getNode();
-	 public int getPosition();
 	 public String getIP();
-	 public CountDownLatch getLatch();
 	 
 }

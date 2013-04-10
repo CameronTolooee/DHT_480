@@ -1,10 +1,8 @@
 package dht.event;
 
 import java.io.Serializable;
-import java.util.concurrent.CountDownLatch;
 
 import dht.chord.ChordKey;
-import dht.chord.ChordNode;
 
 public class LookupTableEvent implements Serializable, DHTEvent {
 
@@ -27,7 +25,6 @@ public class LookupTableEvent implements Serializable, DHTEvent {
 		return type;
 	}
 
-	@Override
 	public ChordKey getOriginal() {
 		return original;
 	}
@@ -36,12 +33,6 @@ public class LookupTableEvent implements Serializable, DHTEvent {
 		return destination;
 	}
 
-	@Override
-	public ChordNode getNode() {
-		return null;
-	}
-
-	@Override
 	public int getPosition() {
 		return position;
 	}
@@ -49,10 +40,5 @@ public class LookupTableEvent implements Serializable, DHTEvent {
 	@Override
 	public String getIP() {
 		return ip;
-	}
-
-	@Override
-	public CountDownLatch getLatch() {
-		return null;
 	}
 }

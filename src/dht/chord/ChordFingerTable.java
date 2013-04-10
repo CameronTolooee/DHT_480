@@ -4,9 +4,7 @@ import java.io.Serializable;
 
 
 public class ChordFingerTable implements Serializable{
-	/**
-	 * 
-	 */
+
 	private static final long serialVersionUID = -8675399012403797889L;
 	private ChordTableEntry[] table;
 	

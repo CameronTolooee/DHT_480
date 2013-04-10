@@ -6,9 +6,6 @@ import java.security.MessageDigest;
 //Stolen from joonion @ google code
 public class ChordHash implements Serializable{
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 3420477435371107578L;
 
 	public static String function = "SHA-1";

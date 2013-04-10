@@ -1,7 +1,7 @@
 package dht.client;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
@@ -18,35 +18,80 @@ import dht.net.IO;
 
 public class Client {
 
+	private String ip; 
+	
+	public Client(){
+		try {
+			ip = InetAddress.getLocalHost().toString();
+			ip = ip.substring(ip.indexOf('/')+1);
+		} catch (IOException e){
+			e.printStackTrace();
+		}
+	}
+	
+	
 	/**
-	 * @param args
+	 * @param String absolute path to file
+	 * 		  String cluster server
 	 */
 	public static void main(String[] args) {
+		if(args.length < 1)
+			usage();
 		Client client = new Client();
-		client.store(args[0], args[1]);
+		switch (args[0]){
+		case "store" : 
+			if (args.length == 3)
+				client.store(args[1], args[2]);
+			else 
+				usage();
+			break;
+		case "query": 
+			if (args.length == 3)
+				client.query(args[1], args[2]);
+			else 
+				usage();
+			break;
+		}
+	}
+	
+	private static void usage(){
+		System.out.println("Invalid params, make this a better message later..");
 	}
 	
 	private void store(String fileName, String server){
+		ServerSocket ss = null;
+		ObjectOutputStream out = null;
+		ObjectInputStream in = null;
+		Socket sock = null;
 		try {
-			ServerSocket ss = new ServerSocket(ChordNode.PORT);
-			Socket sock = new Socket(server,  ChordNode.PORT);
-			IO comm = new IO(sock);
+			ss = new ServerSocket(ChordNode.PORT); // ss to listen for responce from cluster after lookup
+			sock = new Socket(server,  ChordNode.PORT); // connection to the server specified in args
+			IO comm = new IO(sock); 
+			
 			File file = new File(fileName);
-			String myIP = InetAddress.getLocalHost().toString();
-			System.out.println(myIP.substring(myIP.indexOf('/')+1));
-			DHTEvent lookup = new LookupEvent(new ChordKey(file.hashCode()), server, myIP.substring(myIP.indexOf('/')+1));
+			DHTEvent lookup = new LookupEvent(new ChordKey(file.hashCode()), server, ip);
 			comm.sendEvent(lookup);
+			
 			Socket socket = ss.accept();
-			ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-			ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+			
+			out = new ObjectOutputStream(socket.getOutputStream());
+			in = new ObjectInputStream(socket.getInputStream());
 			FoundNodeEvent found = (FoundNodeEvent) in.readObject();
 			IO comm2 = new IO(new Socket(found.getIP(), ChordNode.PORT));
 			StorageEvent store = new StorageEvent(file, "/tmp/muehlooee/");
 			comm2.sendEvent(store);
-		
-			
 		}catch (Exception e){
 			e.printStackTrace();
+		} finally { // cleanup
+			try {
+				ss.close();
+				out.close();
+				in.close();
+				sock.close();
+			} catch (Exception e){
+				e.printStackTrace();
+			}
+			
 		}
 	}
 
@@ -54,7 +99,7 @@ public class Client {
 		
 	}
 	
-	private void query(String fileName){
+	private void query(String fileName, String server){
 		
 	}
 	
@@ -69,13 +114,4 @@ public class Client {
 	private String findClosestNode(){
 		return null;
 	}
-	
-	// Methods for testing purposes only:
-	
-	private void getNodeInfo(){
-		
-	}
-	
-	
-
 }
