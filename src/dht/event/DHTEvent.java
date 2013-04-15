@@ -14,7 +14,7 @@ public interface DHTEvent {
 		 STABLIZE_S,
 		 LOOKUP_TABLE,
 		 FOUND_TABLE,
-		 UPDATE_TABLE
+		 UPDATE_TABLE, QUERY
 	 }
 	 
 	 public EventType getEventType();

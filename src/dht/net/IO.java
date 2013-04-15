@@ -21,19 +21,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-
 import java.net.Socket;
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
-
-import java.util.Set;
+import java.util.Arrays;
 
 import dht.event.DHTEvent;
 import dht.event.DHTEvent.EventType;
+import dht.event.QueryEvent;
 import dht.event.StorageEvent;
 
 public class IO {
@@ -42,7 +35,6 @@ public class IO {
 	private ObjectInputStream input;
 	private ObjectOutputStream output;
 	private static final int BUFFER_SIZE = 4096; /* Max buffer size is (2^32)- 1; 4096 bytes is the block size of the new advanced format sector drives*/
-	private final FileAttribute<Set<PosixFilePermission>> FILE_PERMISSIONS = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxrwxrwx"));
 	private String ip;
 	
 	public IO(Socket socket){
@@ -60,7 +52,7 @@ public class IO {
 	/* Should send update information to all the nodes that have finger table entry for this node
 	 * SERVER SPECIFIC!!!!!!!
 	 * */
-	public void heartBeat(){
+	public void heartBeat() {
 		//TODO 
 	}
 	
@@ -104,9 +96,12 @@ public class IO {
 	public void sendFile(File file, String path){
 		
 		System.out.println("Sending file...");
+		System.out.println(path+file.getName());
 		FileInputStream fileInput = null;
 		try {
 			/* SEND THE FILE NAME AS STRING*/
+			if(!path.endsWith("/"))
+				path+="/";
 			output.writeObject(path+file.getName());
 			output.flush();
 			
@@ -137,7 +132,7 @@ public class IO {
 	
 		
 	/* Reads a file from the socket; returns the file it read */
-	public void receiveFile(){
+	public void receiveFile(String path){
 
 		System.out.println("Receiving file...");
 		FileOutputStream fileOutput = null;
@@ -147,8 +142,8 @@ public class IO {
 			String filename = "";
 			o = input.readObject();
 			if(o instanceof String){
-				filename = createParents((String) o);
-			}else
+				filename = createParents(path);
+			} else
 				System.err.println("Class: IO.java, Function: receiveFile(), Error: expected file name as String, received "+(o.toString()));
 
 			/* READ FILE 4096 BYTES AT A TIME
@@ -193,12 +188,21 @@ public class IO {
 	/* Create the parent directories for the given file
 	 */
 	private String createParents(String filepath){
+		System.out.println(filepath);
 		String filename = filepath;
 		if(filepath.contains("/")){
 			String path = filepath.substring(0, filepath.lastIndexOf("/"));
+			String[] dirs = path.split("/");
 			try {
-				Files.createDirectories(Paths.get(path), FILE_PERMISSIONS);
-			} catch (IOException e) {
+				System.out.println(Arrays.toString(dirs));
+				String temp = "/";
+				for(String dir : dirs){
+					temp += dir+"/";
+					if(!new File(temp).exists()) {
+						System.out.println(new File(temp).mkdir());
+					} 
+				}
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
@@ -227,7 +231,12 @@ public class IO {
 				output.writeObject(event);
 				output.flush();
 				StorageEvent se = (StorageEvent) event;
-				sendFile(se.getFile(), se.gethPath());
+				sendFile(se.getFile(), se.getPath());
+			} else if(event.getEventType() == EventType.QUERY) {
+				output.writeObject(event);
+				output.flush();
+				QueryEvent qe = (QueryEvent) event;
+				receiveFile(qe.getDest());
 			} else {
 				output.writeObject(event);
 				output.flush();

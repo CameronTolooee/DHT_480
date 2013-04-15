@@ -22,7 +22,12 @@ public class DHTEventHandler implements Runnable {
 		IO comm = new IO(sock);
 		event = comm.getEvent();
 		if (event.getEventType() == EventType.STORAGE) {
-			comm.receiveFile();
+			StorageEvent se = (StorageEvent) event;
+			String path = se.getPath();
+			comm.receiveFile(path+se.getFile().getName());
+		} if (event.getEventType() == EventType.QUERY) {
+			QueryEvent qe = (QueryEvent) event;
+			comm.sendFile(qe.getFile(), qe.getOrig());
 		} else {
 			this.node = node;
 		}
@@ -38,7 +43,7 @@ public class DHTEventHandler implements Runnable {
 					break;
 				case JOIN: join();
 					break;
-				case RBQ_EVENT:
+				case RBQ_EVENT: rbq_event();
 					break;
 				case LOOKUP_TABLE: lookupTable();
 					break;
@@ -55,13 +60,32 @@ public class DHTEventHandler implements Runnable {
 				case FOUND_TABLE: foundTable();
 					break;
 				case UPDATE_TABLE: updateTable();
+					break;
 				default: 
 			}
 
 		}
 
 	}
-	
+
+	private void rbq_event() {
+		System.out.println("GOT BBQ?");
+		RBQEvent rbq = (RBQEvent) event;
+		try {
+			if(rbq.getOrig().equals(node.getId()) && !rbq.getFirst()) {
+				IO comm = new IO(new Socket(rbq.getIP(), ChordNode.PORT));
+				comm.sendEvent(rbq);
+			} else {
+				rbq.setFirst();
+				IO comm = new IO(new Socket(node.getSuccessor().getId(), ChordNode.PORT));
+				rbq.addFiles("/tmp/muehlooee");
+				comm.sendEvent(rbq);
+			}
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+	}
+
 	private void updateTable() {
 		SUpdateTableEvent sutEvent = (SUpdateTableEvent) event;
 		try{
@@ -156,17 +180,18 @@ public class DHTEventHandler implements Runnable {
 	private void lookup() {
 		LookupEvent lEvent = (LookupEvent) event;
 		try {
-			IO comm = new IO(new Socket(lEvent.getIP(), ChordNode.PORT));
 			
 			// If this ip is the same as successor then only 1 node in cluster --> send yourself 
 			if(node.getId().equals(node.getSuccessor().getId())) {
 				FoundNodeEvent foundEvent = new FoundNodeEvent(node.getId(), event.getIP());
+				IO comm = new IO(new Socket(lEvent.getIP(), ChordNode.PORT));
 				comm.sendEvent(foundEvent);
 			} 
 			
 			// If the target is between "this" and successor or target = successor --> send successor
 			else if(lEvent.getOriginal().isBetween(node.getKey(), node.getSuccessor().getKey()) || lEvent.getOriginal().getKey() == node.getSuccessor().getKey().getKey()) {
 				FoundNodeEvent foundEvent = new FoundNodeEvent(node.getSuccessor().getId(), event.getIP());
+				IO comm = new IO(new Socket(lEvent.getIP(), ChordNode.PORT));
 				comm.sendEvent(foundEvent);
 			} 
 			
